@@ -672,7 +672,7 @@ inline reshade::api::resource CloneResource(utils::resource::ResourceInfo* resou
 
       assert(resource_info->proxy_resource.handle != 0u);
 
-      renodx::utils::resource::store->resource_infos[resource_info->proxy_resource.handle] = {
+      renodx::utils::resource::shared.data->resource_infos[resource_info->proxy_resource.handle] = {
           .device = proxy_device_reshade,
           .desc = new_desc,
           .resource = resource_info->resource,
@@ -693,7 +693,7 @@ inline reshade::api::resource CloneResource(utils::resource::ResourceInfo* resou
           &resource_clone,
           shared_handle)) {
     auto extra_ram = renodx::utils::resource::ComputeTextureSize(new_desc);
-    utils::resource::store->resource_infos[resource_clone.handle] = {
+    utils::resource::shared.data->resource_infos[resource_clone.handle] = {
         .device = device,
         .desc = new_desc,
         .resource = resource_clone,
@@ -897,7 +897,7 @@ inline reshade::api::resource_view GetResourceViewClone(
           new_desc,
           &resource_view_info->clone);
       if (created) {
-        renodx::utils::resource::store->resource_view_infos[resource_view_info->clone.handle] = renodx::utils::resource::ResourceViewInfo({
+        renodx::utils::resource::shared.data->resource_view_infos[resource_view_info->clone.handle] = renodx::utils::resource::ResourceViewInfo({
             .device = device,
             .desc = new_desc,
             .view = resource_view_info->clone,
@@ -3630,10 +3630,10 @@ static void Use(DWORD fdw_reason, T* new_injections = nullptr) {
       reshade::register_event<reshade::addon_event::create_resource>(OnCreateResource);
       reshade::register_event<reshade::addon_event::create_resource_view>(OnCreateResourceView);
 
-      renodx::utils::resource::store->on_init_resource_info_callbacks.emplace_back(&OnInitResourceInfo);
-      renodx::utils::resource::store->on_destroy_resource_info_callbacks.emplace_back(&OnDestroyResourceInfo);
-      renodx::utils::resource::store->on_init_resource_view_info_callbacks.emplace_back(&OnInitResourceViewInfo);
-      renodx::utils::resource::store->on_destroy_resource_view_info_callbacks.emplace_back(&OnDestroyResourceViewInfo);
+      renodx::utils::resource::RegisterOnInitResourceInfoCallback(&OnInitResourceInfo);
+      renodx::utils::resource::RegisterOnDestroyResourceInfoCallback(&OnDestroyResourceInfo);
+      renodx::utils::resource::RegisterOnInitResourceViewInfoCallback(&OnInitResourceViewInfo);
+      renodx::utils::resource::RegisterOnDestroyResourceViewInfoCallback(&OnDestroyResourceViewInfo);
 
       reshade::register_event<reshade::addon_event::copy_resource>(OnCopyResource);
 
@@ -3696,10 +3696,10 @@ static void Use(DWORD fdw_reason, T* new_injections = nullptr) {
       reshade::unregister_event<reshade::addon_event::create_resource>(OnCreateResource);
       reshade::unregister_event<reshade::addon_event::create_resource_view>(OnCreateResourceView);
 
-      // renodx::utils::resource::on_init_resource_info_callbacks.erase(&OnInitResourceInfo);
-      // renodx::utils::resource::on_destroy_resource_info_callbacks.erase(&OnDestroyResourceInfo);
-      // renodx::utils::resource::on_init_resource_view_info_callbacks.erase(&OnInitResourceViewInfo);
-      // renodx::utils::resource::on_destroy_resource_view_info_callbacks.erase(&OnDestroyResourceViewInfo);
+      renodx::utils::resource::UnregisterOnInitResourceInfoCallback(&OnInitResourceInfo);
+      renodx::utils::resource::UnregisterOnDestroyResourceInfoCallback(&OnDestroyResourceInfo);
+      renodx::utils::resource::UnregisterOnInitResourceViewInfoCallback(&OnInitResourceViewInfo);
+      renodx::utils::resource::UnregisterOnDestroyResourceViewInfoCallback(&OnDestroyResourceViewInfo);
 
       reshade::unregister_event<reshade::addon_event::copy_resource>(OnCopyResource);
 
