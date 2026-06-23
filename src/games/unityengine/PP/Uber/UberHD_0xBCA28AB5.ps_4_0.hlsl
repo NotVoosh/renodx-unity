@@ -143,7 +143,11 @@ void main(
     r1.x = r0.w;
   }
   if (injectedData.countOld == injectedData.countNew) {
+<<<<<<< HEAD
     r1.yzw = PostToneMapScale(r1.yzw);
+=======
+    r0.xyz = PostToneMapScale(r0.xyz);
+>>>>>>> 2b1d3d40 (feat(unityengine): add Deer & Boy shader)
   }
   o0.xyzw = r1.yzwx;
   return;
