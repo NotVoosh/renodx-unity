@@ -17,11 +17,13 @@
 #include "../../utils/date.hpp"
 #include "../../utils/settings.hpp"
 #include "../../utils/random.hpp"
+#include "./dump_uber.hpp"
 #include "./shared.h"
 
 namespace {
 
 float unityTonemapper = 0.f; // 1 = none, 2 = neutral/sapphire/custom, 3 = ACES
+float g_dump_shaders = 0.f;
 float g_use_swapchain_proxy = 0.f;
 float countMid = 0.f;
 float countOffset = 0.f;
@@ -2880,29 +2882,6 @@ renodx::utils::settings::Settings settings = {
         .is_visible = []() { return shader_injection.tonemapCheck >= 2.f; },
     },
     new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::TEXT,
-        .label = "Version: " + std::string(renodx::utils::date::ISO_DATE),
-        .section = "About",
-        .tooltip = std::string(__DATE__),
-    },
-    new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::BUTTON,
-        .label = "Discord",
-        .section = "Links",
-        .group = "button-line-2",
-        .tooltip = "RenoDX server",
-        .tint = 0x5865F2,
-        .on_change = []() { renodx::utils::platform::LaunchURL("https://discord.gg/ren", "odx"); },
-    },
-    new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::BUTTON,
-        .label = "Github",
-        .section = "Links",
-        .group = "button-line-2",
-        .tooltip = "RenoDX repository",
-        .on_change = []() { renodx::utils::platform::LaunchURL("https://github.com/clshortfuse/renodx"); },
-    },
-    new renodx::utils::settings::Setting{
         .key = "rolloffUI",
         .binding = &shader_injection.rolloffUI,
         .value_type = renodx::utils::settings::SettingValueType::INTEGER,
@@ -3941,6 +3920,56 @@ void AddAdvancedSettings() {
 
     renodx::mods::swapchain::prevent_full_screen = (setting->GetValue() == 1.f);
   }
+  {
+    auto* uber_dump_setting = new renodx::utils::settings::Setting{
+        .key = "DumpUberShaders",
+        .binding = &g_dump_shaders,
+        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
+        .default_value = 0.f,
+        .label = "Dump Uber Shaders",
+        .section = "Development",
+        .tooltip = "Traces and dumps uber shaders that sample a 1024x32 or 256x16 internal LUT.",
+        .labels = {
+            "Off",
+            "On",
+        },
+        .tint = 0x452F7A,
+        .is_global = true,
+        .is_visible = []() { return settings[0]->GetValue() >= 2; },
+    };
+    add_setting(uber_dump_setting);
+    uber_dump_setting->on_change_value = [uber_dump_setting](float /*previous*/, float current) {
+      uber_dump_setting->tint = (current == 1.f) ? 0xD82D19u : 0x896895u;
+    };
+    uber_dump_setting->tint = (uber_dump_setting->GetValue() == 1.f) ? 0xD82D19u : 0x896895u;
+
+    g_dump_shaders = uber_dump_setting->GetValue();
+  }
+  {
+    add_setting(new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::TEXT,
+        .label = "Version: " + std::string(renodx::utils::date::ISO_DATE),
+        .section = "About",
+        .tooltip = std::string(__DATE__),
+    });
+    add_setting(new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::BUTTON,
+        .label = "Discord",
+        .section = "Links",
+        .group = "button-line-2",
+        .tooltip = "RenoDX server",
+        .tint = 0x5865F2,
+        .on_change = []() { renodx::utils::platform::LaunchURL("https://discord.gg/ren", "odx"); },
+    });
+    add_setting(new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::BUTTON,
+        .label = "Github",
+        .section = "Links",
+        .group = "button-line-2",
+        .tooltip = "RenoDX repository",
+        .on_change = []() { renodx::utils::platform::LaunchURL("https://github.com/clshortfuse/renodx"); },
+    });
+  }
 }
 
 /*void OnInitDevice(reshade::api::device* device) {
@@ -4043,6 +4072,10 @@ void OnPresent(
 
 bool initialized = false;
 
+bool IsCustomShader(std::uint32_t shader_hash) {
+  return custom_shaders.contains(shader_hash);
+}
+
 }  // namespace
 
 extern "C" __declspec(dllexport) constexpr const char* NAME = "RenoDX";
@@ -4098,5 +4131,12 @@ BOOL APIENTRY DllMain(HMODULE h_module, DWORD fdw_reason, LPVOID lpv_reserved) {
   }
   renodx::mods::shader::Use(fdw_reason, custom_shaders, &shader_injection);
   renodx::utils::random::Use(fdw_reason);
+
+  if (g_dump_shaders != 0.f) {
+    dump_uber::SetDumpShadersBinding(&g_dump_shaders);
+    dump_uber::SetShaderInAddonCallback(&IsCustomShader);
+    dump_uber::Use(fdw_reason);
+  }
+
   return TRUE;
 }
