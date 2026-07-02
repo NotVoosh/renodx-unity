@@ -1,4 +1,4 @@
-#include "../common.hlsl"
+#include "../common.hlsli"
 
 Texture3D<float4> t7 : register(t7);
 TextureCube<float4> t6 : register(t6);

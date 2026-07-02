@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -85,51 +85,51 @@ void main(
   //config.reno_drt_blowout = 1.f - injectedData.colorGradeBlowout;
   config.mid_gray_value = midGray;
   config.mid_gray_nits = midGray * 100;
-  config.reno_drt_flare = 0.10f * pow(injectedData.colorGradeFlare, 10.f);
+  //config.reno_drt_flare = 0.10f * pow(injectedData.colorGradeFlare, 10.f);
   if(param == 1){
   config.reno_drt_contrast = 1.38f;
-  config.reno_drt_flare = 0.02752 * pow(injectedData.colorGradeFlare, 3.f);
+  //config.reno_drt_flare = 0.02752 * pow(injectedData.colorGradeFlare, 3.f);
   } else if(param == 2){
   config.reno_drt_contrast = 1.1f;
-  config.reno_drt_flare = 0.051f * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.051f * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 3){
-  config.reno_drt_flare = 0.052f * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.052f * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 4){
-  config.reno_drt_flare = 0.069f * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.069f * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 5){
   config.reno_drt_contrast = 1.1f;
-  config.reno_drt_flare = 0.043f * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.043f * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 6){
   config.reno_drt_contrast = 1.4f;
-  config.reno_drt_flare = 0.0864f * pow(injectedData.colorGradeFlare, 3.f);
+  //config.reno_drt_flare = 0.0864f * pow(injectedData.colorGradeFlare, 3.f);
   } else if(param == 7){
   config.reno_drt_contrast = 1.08f;
-  config.reno_drt_flare = 0.0452f * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.0452f * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 8){
   config.reno_drt_contrast = 1.38f;
-  config.reno_drt_flare = 0.0384f * pow(injectedData.colorGradeFlare, 3.f);
+  //config.reno_drt_flare = 0.0384f * pow(injectedData.colorGradeFlare, 3.f);
   } else if(param == 9){
   defaultClip = 2.f;
   config.reno_drt_highlights = 1.04f;
   config.reno_drt_contrast = 1.1f;
-  config.reno_drt_flare = 0.045 * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.045 * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 10){
   defaultClip = 2.f;
   config.reno_drt_contrast = 1.1f;
-  config.reno_drt_flare = 0.045 * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.045 * pow(injectedData.colorGradeFlare, 2.f);
   } else if(param == 11){
   config.reno_drt_contrast = 1.36f;
   } else if(param == 12){
   defaultClip = 1.f;
-  config.reno_drt_flare = 0.052 * pow(injectedData.colorGradeFlare, 2.f);
+  //config.reno_drt_flare = 0.052 * pow(injectedData.colorGradeFlare, 2.f);
   }
-  config.hue_correction_type = injectedData.toneMapPerChannel != 1.f ? renodx::tonemap::config::hue_correction_type::INPUT
-                                                                     : renodx::tonemap::config::hue_correction_type::CUSTOM;
-  config.hue_correction_strength = injectedData.toneMapHueCorrection;
+  //config.hue_correction_type = injectedData.toneMapPerChannel != 1.f ? renodx::tonemap::config::hue_correction_type::INPUT
+  //                                                                   : renodx::tonemap::config::hue_correction_type::CUSTOM;
+  ////config.hue_correction_strength = injectedData.toneMapHueCorrection;
   config.hue_correction_color = lerp(r0.xyz, hueCorrectionColor, injectedData.toneMapHueShift);
-  config.reno_drt_hue_correction_method = injectedData.toneMapHueProcessor;
+  //config.reno_drt_hue_correction_method = injectedData.toneMapHueProcessor;
   config.reno_drt_tone_map_method = injectedData.toneMapType - 2.f;
-  config.reno_drt_per_channel = injectedData.toneMapPerChannel != 1.f;
+  //config.reno_drt_per_channel = injectedData.toneMapPerChannel != 1.f;
   config.reno_drt_working_color_space = 0;
   config.reno_drt_white_clip = injectedData.colorGradeClip == 0.f ? defaultClip : injectedData.colorGradeClip;
   if (config.type == 0.f) {
@@ -137,7 +137,7 @@ void main(
   }
   r0.xyz = renodx::tonemap::config::Apply(r0.xyz, config);
   r0.xyz = handleUserLUT(r0.xyz, t3, s2_s, cb0[10].xyz, 2, true);
-  r0.xyz = grading(r0.xyz);
+  //r0.xyz = grading(r0.xyz);
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);
   }

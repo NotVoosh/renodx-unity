@@ -6,6 +6,9 @@
 #define ImTextureID ImU64
 
 #define DEBUG_LEVEL_0
+//#define DEBUG_LEVEL_1
+//#define DEBUG_LEVEL_2
+#define RENODX_MODS_SWAPCHAIN_VERSION 2
 
 #include <deps/imgui/imgui.h>
 #include <embed/shaders.h>
@@ -22,8 +25,10 @@
 
 namespace {
 
-float unityTonemapper = 0.f; // 1 = none, 2 = neutral/sapphire/custom, 3 = ACES
 float g_dump_shaders = 0.f;
+bool isTonemapped = false;
+float isTonemappedCheck = 0.f;
+float unityTonemapper = 0.f;
 float g_use_swapchain_proxy = 0.f;
 float countMid = 0.f;
 float countOffset = 0.f;
@@ -62,42 +67,63 @@ ShaderInjectData shader_injection;
       },                                     \
   }
 
+#define UpgradeRTVReplaceShader(value)       \
+  {                                          \
+      value,                                 \
+      {                                      \
+          .crc32 = value,                    \
+          .code = __##value,                 \
+          .on_draw = [](auto* cmd_list) {                                                             \
+            auto rtvs = renodx::utils::swapchain::GetRenderTargets(cmd_list);                         \
+            bool changed = false;                                                                     \
+            for (auto rtv : rtvs) {                                                                   \
+              changed = renodx::mods::swapchain::ActivateCloneHotSwap(cmd_list->get_device(), rtv);   \
+            }                                                                                         \
+            if (changed) {                                                                            \
+              renodx::mods::swapchain::FlushDescriptors(cmd_list);                                    \
+              renodx::mods::swapchain::RewriteRenderTargets(cmd_list, rtvs.size(), rtvs.data(), {0}); \
+            }                                                                                         \
+            return true; }, \
+      },                                     \
+  }
+
 // LutGen, LutBuilder3D
 // can hide
-bool SneakyBuilderTonemap1(reshade::api::command_list* cmd_list) {
+bool SneakyBuilderNoTonemap(reshade::api::command_list* cmd_list) {
   //unityTonemapper = 1.5f;
-  unityTonemapper = unityTonemapper <= 1.f ? 1.5f : unityTonemapper;
-  forceDetect = true;
+  //unityTonemapper = unityTonemapper <= 1.f ? 1.5f : unityTonemapper;
+  //forceDetect = true;
   sneakyBuilder = true;
   lutBuilder = true;
   return true;
 }
-#define SneakyBuilder1OnDraw(value)            \
+#define SneakyBuilderNoTonemapOnDraw(value)    \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = SneakyBuilderTonemap1,    \
+          .on_draw = SneakyBuilderNoTonemap,   \
       },                                       \
   }
-bool SneakyBuilderTonemap2(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 2;
-  forceDetect = true;
+bool SneakyBuilderTonemap(reshade::api::command_list* cmd_list) {
+  //unityTonemapper = 2;
+  //forceDetect = true;
+  isTonemapped = true;
   sneakyBuilder = true;
   lutBuilder = true;
   return true;
 }
-#define SneakyBuilder2OnDraw(value)            \
+#define SneakyBuilderTonemapOnDraw(value)      \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = SneakyBuilderTonemap2,    \
+          .on_draw = SneakyBuilderTonemap,     \
       },                                       \
   }
-bool SneakyBuilderTonemap3(reshade::api::command_list* cmd_list) {
+/*bool SneakyBuilderTonemap3(reshade::api::command_list* cmd_list) {
   unityTonemapper = 3;
   forceDetect = true;
   sneakyBuilder = true;
@@ -112,44 +138,45 @@ bool SneakyBuilderTonemap3(reshade::api::command_list* cmd_list) {
           .code = __##value,                   \
           .on_draw = SneakyBuilderTonemap3,    \
       },                                       \
-  }
+  }*/
 // LutBuilderHdr NoTonemap, Lut3DBaker NoTonemap, Lut2DBaker, LutBuilderLdr,
 // can have multiple draws
-bool LutBuilderTonemap1(reshade::api::command_list* cmd_list) {
-  unityTonemapper = unityTonemapper <= 1.f ? 1 : unityTonemapper;
-  shader_injection.count2New += 1.f;
-  count2Mid += 1.f;
-  forceDetect = true;
+bool LutBuilderNoTonemap(reshade::api::command_list* cmd_list) {
+  //unityTonemapper = unityTonemapper <= 1.f ? 1 : unityTonemapper;
+  //shader_injection.count2New += 1.f;
+  //count2Mid += 1.f;
+  //forceDetect = true;
   lutBuilder = true;
   return true;
 }
-#define Builder1OnDraw(value)                  \
+#define LutBuilderNoTonemapOnDraw(value)       \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = LutBuilderTonemap1,       \
+          .on_draw = LutBuilderNoTonemap,      \
       },                                       \
   }
-bool LutBuilderTonemap2(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 2;
-  shader_injection.count2New += 1.f;
-  count2Mid += 1.f;
-  forceDetect = true;
+bool LutBuilderTonemap(reshade::api::command_list* cmd_list) {
+  //unityTonemapper = 2;
+  //shader_injection.count2New += 1.f;
+  //count2Mid += 1.f;
+  //forceDetect = true;
+  isTonemapped = true;
   lutBuilder = true;
   return true;
 }
-#define Builder2OnDraw(value)                  \
+#define LutBuilderTonemapOnDraw(value)         \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = LutBuilderTonemap2,       \
+          .on_draw = LutBuilderTonemap,        \
       },                                       \
   }
-bool LutBuilderTonemap3(reshade::api::command_list* cmd_list) {
+/*bool LutBuilderTonemap3(reshade::api::command_list* cmd_list) {
   unityTonemapper = 3;
   shader_injection.count2New += 1.f;
   count2Mid += 1.f;
@@ -157,7 +184,7 @@ bool LutBuilderTonemap3(reshade::api::command_list* cmd_list) {
   lutBuilder = true;
   return true;
 }
-#define Builder3OnDraw(value)                  \
+#define LutBuilderTonemapOnDraw(value)                  \
   {                                            \
       value,                                   \
       {                                        \
@@ -165,7 +192,7 @@ bool LutBuilderTonemap3(reshade::api::command_list* cmd_list) {
           .code = __##value,                   \
           .on_draw = LutBuilderTonemap3,       \
       },                                       \
-  }
+  }*/
 bool Count(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
@@ -346,6 +373,7 @@ bool CountGammaTonemap1Clamped(reshade::api::command_list* cmd_list) {
 bool CountLinearTonemap2(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  isTonemapped = true;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   unityTonemapper = 2;
@@ -356,6 +384,7 @@ bool CountLinearTonemap2(reshade::api::command_list* cmd_list) {
 bool CountLinearTonemap2Luminance(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  isTonemapped = true;
   unityTonemapper = 2.5f;
   shader_injection.isClamped = shader_injection.isClamped == 0.f ? 1.f : shader_injection.isClamped;
   forceDetect = true;
@@ -364,9 +393,12 @@ bool CountLinearTonemap2Luminance(reshade::api::command_list* cmd_list) {
 bool CountLinearTonemap3(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
+  isTonemapped = true;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
-  unityTonemapper = 3;
+  //unityTonemapper = 3;
   shader_injection.isClamped = shader_injection.isClamped == 0.f ? 1.f : shader_injection.isClamped;
   forceDetect = true;
   return true;
@@ -374,6 +406,7 @@ bool CountLinearTonemap3(reshade::api::command_list* cmd_list) {
 bool CountLinearTonemap35(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  isTonemapped = true;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   unityTonemapper = 3.5f;
@@ -393,6 +426,7 @@ bool CountLinearTonemap35(reshade::api::command_list* cmd_list) {
 bool CountGammaTonemap35(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  isTonemapped = true;
   gammaSpace = 1.f;
   gammaSpaceLock = true;
   unityTonemapper = 3.5f;
@@ -411,12 +445,15 @@ bool CountGammaTonemap35(reshade::api::command_list* cmd_list) {
   }
 // HDRP Uber
 bool UberHDRP(reshade::api::command_list* cmd_list) {
-  /*countMid += 1.f;
-  shader_injection.countNew += 1.f;*/
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
+  countMid += 1.f;
+  shader_injection.countNew += 1.f;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  //shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (isTonemapped ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
   lutSampler = true;
   return true;
 }
@@ -433,6 +470,8 @@ bool UberHDRP(reshade::api::command_list* cmd_list) {
 bool UberPFXLinear(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -452,6 +491,8 @@ bool UberPFXLinear(reshade::api::command_list* cmd_list) {
 bool UberPFXGamma(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 1.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -472,8 +513,11 @@ bool UberPFXGamma(reshade::api::command_list* cmd_list) {
 bool UberHD(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  //shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (isTonemapped ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
   lutSampler = true;
   return true;
 }
@@ -489,10 +533,13 @@ bool UberHD(reshade::api::command_list* cmd_list) {
 bool UberHDLinear(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  //shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (isTonemapped ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
   lutSampler = true;
   return true;
 }
@@ -508,10 +555,13 @@ bool UberHDLinear(reshade::api::command_list* cmd_list) {
 bool UberHDGamma(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 1.f;
   gammaSpaceLock = true;
   forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  //shader_injection.isClamped = shader_injection.isClamped == 0.f ? (unityTonemapper >= 2.f ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
+  shader_injection.isClamped = shader_injection.isClamped == 0.f ? (isTonemapped ? 1.f : shader_injection.isClamped) : shader_injection.isClamped;
   lutSampler = true;
   return true;
 }
@@ -527,6 +577,8 @@ bool UberHDGamma(reshade::api::command_list* cmd_list) {
 bool UberLinear(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -546,6 +598,8 @@ bool UberLinear(reshade::api::command_list* cmd_list) {
 bool UberGamma(reshade::api::command_list* cmd_list) {
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
   gammaSpace = 1.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -562,10 +616,13 @@ bool UberGamma(reshade::api::command_list* cmd_list) {
           .on_draw = UberGamma,                \
       },                                       \
   }
-bool UberNeutralLinear(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 2;
+bool UberTonemapLinear(reshade::api::command_list* cmd_list) {
+  //unityTonemapper = 2;
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
+  isTonemapped = true;
   gammaSpace = 0.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -573,19 +630,22 @@ bool UberNeutralLinear(reshade::api::command_list* cmd_list) {
   lutSampler = true;
   return true;
 }
-#define UberNeutralLinearOnDraw(value)         \
+#define UberTonemapLinearOnDraw(value)         \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = UberNeutralLinear,        \
+          .on_draw = UberTonemapLinear,        \
       },                                       \
   }
-bool UberNeutralGamma(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 2;
+bool UberTonemapGamma(reshade::api::command_list* cmd_list) {
+  //unityTonemapper = 2;
   countMid += 1.f;
   shader_injection.countNew += 1.f;
+  count2Mid += 1.f;
+  shader_injection.count2New += 1.f;
+  isTonemapped = true;
   gammaSpace = 1.f;
   gammaSpaceLock = true;
   forceDetect = true;
@@ -593,58 +653,18 @@ bool UberNeutralGamma(reshade::api::command_list* cmd_list) {
   lutSampler = true;
   return true;
 }
-#define UberNeutralGammaOnDraw(value)          \
+#define UberTonemapGammaOnDraw(value)          \
   {                                            \
       value,                                   \
       {                                        \
           .crc32 = value,                      \
           .code = __##value,                   \
-          .on_draw = UberNeutralGamma,         \
-      },                                       \
-  }
-bool UberACESLinear(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 3;
-  countMid += 1.f;
-  shader_injection.countNew += 1.f;
-  gammaSpace = 0.f;
-  gammaSpaceLock = true;
-  forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? 1.f : shader_injection.isClamped;
-  lutSampler = true;
-  return true;
-}
-#define UberACESLinearOnDraw(value)            \
-  {                                            \
-      value,                                   \
-      {                                        \
-          .crc32 = value,                      \
-          .code = __##value,                   \
-          .on_draw = UberACESLinear,           \
-      },                                       \
-  }
-bool UberACESGamma(reshade::api::command_list* cmd_list) {
-  unityTonemapper = 3;
-  countMid += 1.f;
-  shader_injection.countNew += 1.f;
-  gammaSpace = 1.f;
-  gammaSpaceLock = true;
-  forceDetect = true;
-  shader_injection.isClamped = shader_injection.isClamped == 0.f ? 1.f : shader_injection.isClamped;
-  lutSampler = true;
-  return true;
-}
-#define UberACESGammaOnDraw(value)             \
-  {                                            \
-      value,                                   \
-      {                                        \
-          .crc32 = value,                      \
-          .code = __##value,                   \
-          .on_draw = UberACESGamma,            \
+          .on_draw = UberTonemapGamma,         \
       },                                       \
   }
 bool blitCopy(reshade::api::command_list* cmd_list) {
   blitCopyCheck = 1.f;
-  unityTonemapper = shader_injection.blitCopyHack == 1.f ? (unityTonemapper <= 1.f ? 1 : unityTonemapper) : unityTonemapper;
+  //unityTonemapper = shader_injection.blitCopyHack == 1.f ? (unityTonemapper <= 1.f ? 1 : unityTonemapper) : unityTonemapper;
   countMid += shader_injection.blitCopyHack >= 1.f ? 1.f : 0.f;
   shader_injection.countNew += shader_injection.blitCopyHack >= 1.f ? 1.f : 0.f;
   shader_injection.count2New += shader_injection.blitCopyHack == 1.f ? 1.f : 0.f;
@@ -739,13 +759,20 @@ const ShaderItem INITIAL_SHADERS[] = {
     CountLinearOnDraw(0x1B6B4125),
     CountLinearOnDraw(0x002A3518),
     CountLinearOnDraw(0x02AB22C6),
+    CountLinearOnDraw(0x2CE4C824),
     CountLinearOnDraw(0x3D8F662C),
     CountLinearOnDraw(0x3DA6127F),
     CountLinearOnDraw(0x4BD9F109),
+    CountLinearOnDraw(0x4C2AF525),
     CountLinearOnDraw(0x4DE06BC3),
     CountLinearOnDraw(0x4E2A63EE),
     CountLinearOnDraw(0x5A977943),
+    CountLinearOnDraw(0x5AE952EB),
+    CountLinearOnDraw(0x6D3B4FF0),
     CountLinearOnDraw(0x08F6AF40),
+    CountLinearOnDraw(0x9A3E0141),
+    CountLinearOnDraw(0x9BDBCC02),
+    CountLinearOnDraw(0x20F00CF5),
     CountLinearOnDraw(0x31B9B1AB),
     CountLinearOnDraw(0x38B55FCE),
     CountLinearOnDraw(0x44D2D279),
@@ -760,8 +787,14 @@ const ShaderItem INITIAL_SHADERS[] = {
     CountLinearOnDraw(0x78ED6152),
     CountLinearOnDraw(0x85DF4472),
     CountLinearOnDraw(0x91D61E3F),
+    CountLinearOnDraw(0x99DC845A),
     CountLinearOnDraw(0x110E8EE6),
+    CountLinearOnDraw(0x192EEB27),
+    CountLinearOnDraw(0x214D1051),
     CountLinearOnDraw(0x222AC31F),
+    CountLinearOnDraw(0x228A2030),
+    CountLinearOnDraw(0x686C9D67),
+    CountLinearOnDraw(0x0736E454),
     CountLinearOnDraw(0x810A1D59),
     CountLinearOnDraw(0x1310A22D),
     CountLinearOnDraw(0x3069A872),
@@ -779,7 +812,6 @@ const ShaderItem INITIAL_SHADERS[] = {
     CountLinearOnDraw(0xA73C3123),
     CountLinearOnDraw(0xA5809BF4),
     CountLinearOnDraw(0xAB2CD6E2),
-    CountLinearOnDraw(0xAC34C8D9),
     CountLinearOnDraw(0xAC51C144),
     CountLinearOnDraw(0xAE7EE10F),
     CountLinearOnDraw(0xB2B44A63),
@@ -800,92 +832,93 @@ const ShaderItem INITIAL_SHADERS[] = {
     CountLinearOnDraw(0xFFB14DDC),
     CountLinearOnDraw(0xA7E4A5B2),
     CountLinearOnDraw(0x3068FF2D),
+    CountLinearOnDraw(0xAC34C8D9),
       /// Builder 3D ///
         // No Tonemap
-    SneakyBuilder1OnDraw(0xE6786595),
-    SneakyBuilder1OnDraw(0x5BD02347),
+    SneakyBuilderNoTonemapOnDraw(0xE6786595),
+    SneakyBuilderNoTonemapOnDraw(0x5BD02347),
         // Neutral
-    SneakyBuilder2OnDraw(0x7E72688E),
-    SneakyBuilder2OnDraw(0x61FFF3FD),
-    SneakyBuilder2OnDraw(0xD849047B),
+    SneakyBuilderTonemapOnDraw(0x7E72688E),
+    SneakyBuilderTonemapOnDraw(0x61FFF3FD),
+    SneakyBuilderTonemapOnDraw(0xD849047B),
         // ACES
-    SneakyBuilder3OnDraw(0x7F27D36D),
-    SneakyBuilder3OnDraw(0x17CE181A),
-    SneakyBuilder3OnDraw(0x3661DD34),
-    SneakyBuilder3OnDraw(0x3917A841),
-    SneakyBuilder3OnDraw(0x6811A33B),
-    SneakyBuilder3OnDraw(0xF5AC76A9),
-    SneakyBuilder3OnDraw(0x56369810),
+    SneakyBuilderTonemapOnDraw(0x7F27D36D),
+    SneakyBuilderTonemapOnDraw(0x17CE181A),
+    SneakyBuilderTonemapOnDraw(0x3661DD34),
+    SneakyBuilderTonemapOnDraw(0x3917A841),
+    SneakyBuilderTonemapOnDraw(0x6811A33B),
+    SneakyBuilderTonemapOnDraw(0xF5AC76A9),
+    SneakyBuilderTonemapOnDraw(0x56369810),
 
         // Custom
-    SneakyBuilder2OnDraw(0x3B4291E8),
-    SneakyBuilder2OnDraw(0x7D343D34),
-    SneakyBuilder2OnDraw(0x534F0886),
+    SneakyBuilderTonemapOnDraw(0x3B4291E8),
+    SneakyBuilderTonemapOnDraw(0x7D343D34),
+    SneakyBuilderTonemapOnDraw(0x534F0886),
     ////// HDRP END //////
     ////// URP START //////
       /// Builder Hdr ///
         // No Tonemap
-    Builder1OnDraw(0x6C5FFF35),
-    Builder1OnDraw(0x9B213AF8),
-    Builder1OnDraw(0x39CEB40A),
-    Builder1OnDraw(0x404D05C7),
-    Builder1OnDraw(0x508ABDBD),
-    Builder1OnDraw(0x20D6EA4D),
-    Builder1OnDraw(0x8576F73A),
-    Builder1OnDraw(0x04F466E8),
-    Builder1OnDraw(0xD73B437F),
-    Builder1OnDraw(0x89B011BE),
+    LutBuilderNoTonemapOnDraw(0x6C5FFF35),
+    LutBuilderNoTonemapOnDraw(0x9B213AF8),
+    LutBuilderNoTonemapOnDraw(0x39CEB40A),
+    LutBuilderNoTonemapOnDraw(0x404D05C7),
+    LutBuilderNoTonemapOnDraw(0x508ABDBD),
+    LutBuilderNoTonemapOnDraw(0x20D6EA4D),
+    LutBuilderNoTonemapOnDraw(0x8576F73A),
+    LutBuilderNoTonemapOnDraw(0x04F466E8),
+    LutBuilderNoTonemapOnDraw(0xD73B437F),
+    LutBuilderNoTonemapOnDraw(0x89B011BE),
         // Neutral
-    Builder2OnDraw(0x6C506E30),
-    Builder2OnDraw(0x819CADDA),
-    Builder2OnDraw(0x850A0BF8),
-    Builder2OnDraw(0x15F8BFBD),
-    Builder2OnDraw(0x00C2E62A),
-    Builder2OnDraw(0x8A61E2C4),
-    Builder2OnDraw(0x1F81C511),  // custom params
+    LutBuilderTonemapOnDraw(0x6C506E30),
+    LutBuilderTonemapOnDraw(0x819CADDA),
+    LutBuilderTonemapOnDraw(0x850A0BF8),
+    LutBuilderTonemapOnDraw(0x15F8BFBD),
+    LutBuilderTonemapOnDraw(0x00C2E62A),
+    LutBuilderTonemapOnDraw(0x8A61E2C4),
+    LutBuilderTonemapOnDraw(0x1F81C511),  // custom params
         // ACES
-    Builder3OnDraw(0x5E10541B),
-    Builder3OnDraw(0x13A5D726),
-    Builder3OnDraw(0x31B52561),
-    Builder3OnDraw(0x042C6BD1),
-    Builder3OnDraw(0x64B708E6),
-    Builder3OnDraw(0x246CE154),
-    Builder3OnDraw(0xCE436C36),
-    Builder3OnDraw(0xE6EC2E40),
-    Builder3OnDraw(0xAE8C0E90),
-    Builder3OnDraw(0xBAF1CCB4),
-    Builder3OnDraw(0x1F679F37),
-    Builder3OnDraw(0xA43D2B2D),
+    LutBuilderTonemapOnDraw(0x5E10541B),
+    LutBuilderTonemapOnDraw(0x13A5D726),
+    LutBuilderTonemapOnDraw(0x31B52561),
+    LutBuilderTonemapOnDraw(0x042C6BD1),
+    LutBuilderTonemapOnDraw(0x64B708E6),
+    LutBuilderTonemapOnDraw(0x246CE154),
+    LutBuilderTonemapOnDraw(0xCE436C36),
+    LutBuilderTonemapOnDraw(0xE6EC2E40),
+    LutBuilderTonemapOnDraw(0xAE8C0E90),
+    LutBuilderTonemapOnDraw(0xBAF1CCB4),
+    LutBuilderTonemapOnDraw(0x1F679F37),
+    LutBuilderTonemapOnDraw(0xA43D2B2D),
         // Custom
-    Builder2OnDraw(0x93FBDA60),
+    LutBuilderTonemapOnDraw(0x93FBDA60),
       /// Builder Ldr ///
-    Builder1OnDraw(0x62F196B6),
-    Builder1OnDraw(0x48B66B90),
-    Builder1OnDraw(0x13EEF169),
-    Builder1OnDraw(0x085F1ADA),
-    Builder1OnDraw(0x731B4F3C),
-    Builder1OnDraw(0x0906E676),
-    Builder1OnDraw(0x562744E8),
-    Builder1OnDraw(0x574581C7),
-    Builder1OnDraw(0xB3DF43CA),
-    Builder1OnDraw(0xDA75BEB5),
-    Builder1OnDraw(0xED457D04),
-    Builder1OnDraw(0xFFA5BFB6),
-    Builder1OnDraw(0xE736DD70),
-    Builder1OnDraw(0x453D9983),
-    Builder1OnDraw(0xABAD60A0),
-    Builder1OnDraw(0x63098018),
+    LutBuilderNoTonemapOnDraw(0x62F196B6),
+    LutBuilderNoTonemapOnDraw(0x48B66B90),
+    LutBuilderNoTonemapOnDraw(0x13EEF169),
+    LutBuilderNoTonemapOnDraw(0x085F1ADA),
+    LutBuilderNoTonemapOnDraw(0x731B4F3C),
+    LutBuilderNoTonemapOnDraw(0x0906E676),
+    LutBuilderNoTonemapOnDraw(0x562744E8),
+    LutBuilderNoTonemapOnDraw(0x574581C7),
+    LutBuilderNoTonemapOnDraw(0xB3DF43CA),
+    LutBuilderNoTonemapOnDraw(0xDA75BEB5),
+    LutBuilderNoTonemapOnDraw(0xED457D04),
+    LutBuilderNoTonemapOnDraw(0xFFA5BFB6),
+    LutBuilderNoTonemapOnDraw(0xE736DD70),
+    LutBuilderNoTonemapOnDraw(0x453D9983),
+    LutBuilderNoTonemapOnDraw(0xABAD60A0),
+    LutBuilderNoTonemapOnDraw(0x63098018),
       // GenUberLut
-    Builder1OnDraw(0x894B73C7),
-    Builder1OnDraw(0xDA07C0CD),
-    Builder1OnDraw(0xEFB0C6F3),
-    Builder1OnDraw(0xCD470040),
-    Builder1OnDraw(0x94FB997A),
-    Builder1OnDraw(0x21D72E29),
-    Builder1OnDraw(0x6E73582E),
-    Builder1OnDraw(0xD86138D0),
-    Builder1OnDraw(0x387E19AA),
-    Builder1OnDraw(0xE23B9B48),
+    LutBuilderNoTonemapOnDraw(0x894B73C7),
+    LutBuilderNoTonemapOnDraw(0xDA07C0CD),
+    LutBuilderNoTonemapOnDraw(0xEFB0C6F3),
+    LutBuilderNoTonemapOnDraw(0xCD470040),
+    LutBuilderNoTonemapOnDraw(0x94FB997A),
+    LutBuilderNoTonemapOnDraw(0x21D72E29),
+    LutBuilderNoTonemapOnDraw(0x6E73582E),
+    LutBuilderNoTonemapOnDraw(0xD86138D0),
+    LutBuilderNoTonemapOnDraw(0x387E19AA),
+    LutBuilderNoTonemapOnDraw(0xE23B9B48),
       /// Uber ///
         // NoTonemap
     UberLinearOnDraw(0x00A6DC6D),
@@ -942,6 +975,7 @@ const ShaderItem INITIAL_SHADERS[] = {
     UberLinearOnDraw(0x44894E92),
     UberLinearOnDraw(0x67BE60E8),
     UberLinearOnDraw(0x57A835DD),
+    UberLinearOnDraw(0x60AFE549),
     UberLinearOnDraw(0xEA0DA356),
     UberLinearOnDraw(0xBEF83327),
     UberLinearOnDraw(0xDD53453F),
@@ -1100,129 +1134,129 @@ const ShaderItem INITIAL_SHADERS[] = {
     UberGammaOnDraw(0x3B9FD98B),
     UberGammaOnDraw(0x33F3F6CA),
         // Neutral
-    UberNeutralLinearOnDraw(0x0B383A2F),
-    UberNeutralGammaOnDraw(0x0EA73DAA),
-    UberNeutralLinearOnDraw(0x01FDB021),
-    UberNeutralLinearOnDraw(0x6A5ACB6F),
-    UberNeutralLinearOnDraw(0x009A1C24),
-    UberNeutralLinearOnDraw(0x36DEAC10),
-    UberNeutralLinearOnDraw(0x66C3EBEB),
-    UberNeutralLinearOnDraw(0x96A8E4B9),
-    UberNeutralLinearOnDraw(0x5217FBA3),
-    UberNeutralLinearOnDraw(0x5456BDEE),
-    UberNeutralLinearOnDraw(0x7404F723),
-    UberNeutralLinearOnDraw(0x8613B876),
-    UberNeutralGammaOnDraw(0x179468F9), // no LUT
-    UberNeutralLinearOnDraw(0x28721650),
-    UberNeutralLinearOnDraw(0xA1AACAEA),
-    UberNeutralLinearOnDraw(0xA6C2AA23),
-    UberNeutralLinearOnDraw(0xA8F6504E),
-    UberNeutralLinearOnDraw(0xAABF3985),
-    UberNeutralLinearOnDraw(0xAC471C80),
-    UberNeutralLinearOnDraw(0xAD809271),
-UberNeutralLinearOnDraw(0xB68DCF9E),
-    UberNeutralLinearOnDraw(0xB2327C12),
-    UberNeutralLinearOnDraw(0xB4966496),
-    UberNeutralLinearOnDraw(0xC999597C),
-    UberNeutralLinearOnDraw(0xE73E4C20),
-    UberNeutralLinearOnDraw(0xED86C942),
-    UberNeutralLinearOnDraw(0xD5C07171),
-    UberNeutralLinearOnDraw(0xD72DF71C),
-    UberNeutralLinearOnDraw(0xDB50CB2D),
-    UberNeutralLinearOnDraw(0xDDF23BBB),
-    UberNeutralLinearOnDraw(0xF849180D),
-    UberNeutralLinearOnDraw(0x312AE5CE),
-    UberNeutralLinearOnDraw(0x4CBE7398),
-    UberNeutralLinearOnDraw(0x04D5BD3C),
-    UberNeutralLinearOnDraw(0x2CAF46E1),
-    UberNeutralLinearOnDraw(0x151F7D68),
-    UberNeutralLinearOnDraw(0x215FEC7F),
-    UberNeutralLinearOnDraw(0xD0CC8CE2),
-    UberNeutralLinearOnDraw(0xD1FDEBCD),
-    UberNeutralLinearOnDraw(0xC680A959),
-    UberNeutralLinearOnDraw(0x00C855E4),
-    UberNeutralLinearOnDraw(0x54CAE2A0),
-    UberNeutralLinearOnDraw(0xC06DEF33),
-    UberNeutralLinearOnDraw(0x59762D4A),
-    UberNeutralLinearOnDraw(0x5F655887),
-    UberNeutralGammaOnDraw(0x692D142C),
-    UberNeutralGammaOnDraw(0x5C329C6B),
-    UberNeutralGammaOnDraw(0xCE6048CA), // no LUT
+    UberTonemapLinearOnDraw(0x0B383A2F),
+    UberTonemapGammaOnDraw(0x0EA73DAA),
+    UberTonemapLinearOnDraw(0x01FDB021),
+    UberTonemapLinearOnDraw(0x6A5ACB6F),
+    UberTonemapLinearOnDraw(0x009A1C24),
+    UberTonemapLinearOnDraw(0x36DEAC10),
+    UberTonemapLinearOnDraw(0x66C3EBEB),
+    UberTonemapLinearOnDraw(0x96A8E4B9),
+    UberTonemapLinearOnDraw(0x5217FBA3),
+    UberTonemapLinearOnDraw(0x5456BDEE),
+    UberTonemapLinearOnDraw(0x7404F723),
+    UberTonemapLinearOnDraw(0x8613B876),
+    UberTonemapGammaOnDraw(0x179468F9), // no LUT
+    UberTonemapLinearOnDraw(0x28721650),
+    UberTonemapLinearOnDraw(0xA1AACAEA),
+    UberTonemapLinearOnDraw(0xA6C2AA23),
+    UberTonemapLinearOnDraw(0xA8F6504E),
+    UberTonemapLinearOnDraw(0xAABF3985),
+    UberTonemapLinearOnDraw(0xAC471C80),
+    UberTonemapLinearOnDraw(0xAD809271),
+UberTonemapLinearOnDraw(0xB68DCF9E),
+    UberTonemapLinearOnDraw(0xB2327C12),
+    UberTonemapLinearOnDraw(0xB4966496),
+    UberTonemapLinearOnDraw(0xC999597C),
+    UberTonemapLinearOnDraw(0xE73E4C20),
+    UberTonemapLinearOnDraw(0xED86C942),
+    UberTonemapLinearOnDraw(0xD5C07171),
+    UberTonemapLinearOnDraw(0xD72DF71C),
+    UberTonemapLinearOnDraw(0xDB50CB2D),
+    UberTonemapLinearOnDraw(0xDDF23BBB),
+    UberTonemapLinearOnDraw(0xF849180D),
+    UberTonemapLinearOnDraw(0x312AE5CE),
+    UberTonemapLinearOnDraw(0x4CBE7398),
+    UberTonemapLinearOnDraw(0x04D5BD3C),
+    UberTonemapLinearOnDraw(0x2CAF46E1),
+    UberTonemapLinearOnDraw(0x151F7D68),
+    UberTonemapLinearOnDraw(0x215FEC7F),
+    UberTonemapLinearOnDraw(0xD0CC8CE2),
+    UberTonemapLinearOnDraw(0xD1FDEBCD),
+    UberTonemapLinearOnDraw(0xC680A959),
+    UberTonemapLinearOnDraw(0x00C855E4),
+    UberTonemapLinearOnDraw(0x54CAE2A0),
+    UberTonemapLinearOnDraw(0xC06DEF33),
+    UberTonemapLinearOnDraw(0x59762D4A),
+    UberTonemapLinearOnDraw(0x5F655887),
+    UberTonemapGammaOnDraw(0x692D142C),
+    UberTonemapGammaOnDraw(0x5C329C6B),
+    UberTonemapGammaOnDraw(0xCE6048CA), // no LUT
         // ACES
-    UberACESLinearOnDraw(0x1C42C445),
-    UberACESGammaOnDraw(0x2B44DD32),
-    UberACESLinearOnDraw(0x2C36979C),
-    UberACESLinearOnDraw(0x4B92CD8E),
-    UberACESLinearOnDraw(0xEF39E7C4),
-    UberACESLinearOnDraw(0xFDA8A0F6),
-    UberACESLinearOnDraw(0x9A27FDCD),
-    UberACESLinearOnDraw(0x9D2A9AD7),
-    UberACESLinearOnDraw(0x9F4A9AEC),
-    UberACESLinearOnDraw(0x51B31CD0),
-    UberACESLinearOnDraw(0x60CD88E9),
-    UberACESLinearOnDraw(0x63F63B73),
-    UberACESLinearOnDraw(0x65EDD253),
-    UberACESLinearOnDraw(0x72D26F35),
-    UberACESLinearOnDraw(0x232C3736),
-    UberACESLinearOnDraw(0x501CABD3),
-    UberACESLinearOnDraw(0x622FF869),
-    UberACESLinearOnDraw(0x709B90C7),
-    UberACESLinearOnDraw(0x08331DE7),
-    UberACESLinearOnDraw(0xA6AFBE57),
-    UberACESLinearOnDraw(0xA9329B7F),
-    UberACESLinearOnDraw(0xB4323752),
-    UberACESLinearOnDraw(0xC9F897D5),
-    UberACESLinearOnDraw(0xC38BA808),
-    UberACESLinearOnDraw(0xC593D007),
-    UberACESLinearOnDraw(0xCD0AF2B1),
-    UberACESLinearOnDraw(0xD8C3ADEB),
-    UberACESLinearOnDraw(0xE651D798),
-    UberACESLinearOnDraw(0x6FEECA44),
-    UberACESLinearOnDraw(0x6F7A89B5),
-    UberACESLinearOnDraw(0x182FA95D),
-    UberACESLinearOnDraw(0x215E5311),
-    UberACESLinearOnDraw(0xC01FA28B),
-    UberACESLinearOnDraw(0xB28D0124),
-    UberACESLinearOnDraw(0x2C0EA618),
-    UberACESLinearOnDraw(0x3B30C94A),
-    UberACESLinearOnDraw(0x98999C03),
-    UberACESLinearOnDraw(0x65D6A1C7),
-    UberACESLinearOnDraw(0x3063B396),
-    UberACESLinearOnDraw(0x03522F65),
-    UberACESLinearOnDraw(0x6345B89E),
-    UberACESLinearOnDraw(0x42A50C71),
-    UberACESLinearOnDraw(0x60B48ADF),
-    UberACESLinearOnDraw(0x0DE9EBCF),
-    UberACESLinearOnDraw(0x1B8038E6),
-    UberACESLinearOnDraw(0x9BF686BC),
-    UberACESLinearOnDraw(0xE5C37261),
-    UberACESLinearOnDraw(0x7B4E81D3),
-    UberACESLinearOnDraw(0x8F6AB88F),
-    UberACESLinearOnDraw(0xE1F3EA92),
-    UberACESLinearOnDraw(0xDA822A11),
-    UberACESLinearOnDraw(0xE9A455B7),
-    UberACESLinearOnDraw(0xF949F5A6),
-    UberACESLinearOnDraw(0xF92506D6),
-    UberACESLinearOnDraw(0xFA5BE462),
-    UberACESLinearOnDraw(0xFC440F74),
-    UberACESLinearOnDraw(0xBBEE8C39),
-    UberACESLinearOnDraw(0x8434F830),
-    UberACESLinearOnDraw(0x56DCBA40),
-    UberACESLinearOnDraw(0x464C5DC7),
-    UberACESLinearOnDraw(0xE5AC38E1),
-    UberACESGammaOnDraw(0x230619DF),
-    UberACESGammaOnDraw(0x74A3CCC8),
-    UberACESGammaOnDraw(0x6695772D),
-    UberACESGammaOnDraw(0x822AE84C),
-    UberACESLinearOnDraw(0x02985F48),
-    UberACESGammaOnDraw(0x03F17B55),
-    UberACESGammaOnDraw(0x8516BF4C),
-    UberACESLinearOnDraw(0x82804C2E),
-    UberACESLinearOnDraw(0xDB1A9E91),
-    UberACESGammaOnDraw(0x343E55D9),
-    UberACESGammaOnDraw(0x0D96CCBA),
-    UberACESLinearOnDraw(0x0D6E178C),
-    UberACESLinearOnDraw(0xB01C6167),
+    UberTonemapLinearOnDraw(0x1C42C445),
+    UberTonemapGammaOnDraw(0x2B44DD32),
+    UberTonemapLinearOnDraw(0x2C36979C),
+    UberTonemapLinearOnDraw(0x4B92CD8E),
+    UberTonemapLinearOnDraw(0xEF39E7C4),
+    UberTonemapLinearOnDraw(0xFDA8A0F6),
+    UberTonemapLinearOnDraw(0x9A27FDCD),
+    UberTonemapLinearOnDraw(0x9D2A9AD7),
+    UberTonemapLinearOnDraw(0x9F4A9AEC),
+    UberTonemapLinearOnDraw(0x51B31CD0),
+    UberTonemapLinearOnDraw(0x60CD88E9),
+    UberTonemapLinearOnDraw(0x63F63B73),
+    UberTonemapLinearOnDraw(0x65EDD253),
+    UberTonemapLinearOnDraw(0x72D26F35),
+    UberTonemapLinearOnDraw(0x232C3736),
+    UberTonemapLinearOnDraw(0x501CABD3),
+    UberTonemapLinearOnDraw(0x622FF869),
+    UberTonemapLinearOnDraw(0x709B90C7),
+    UberTonemapLinearOnDraw(0x08331DE7),
+    UberTonemapLinearOnDraw(0xA6AFBE57),
+    UberTonemapLinearOnDraw(0xA9329B7F),
+    UberTonemapLinearOnDraw(0xB4323752),
+    UberTonemapLinearOnDraw(0xC9F897D5),
+    UberTonemapLinearOnDraw(0xC38BA808),
+    UberTonemapLinearOnDraw(0xC593D007),
+    UberTonemapLinearOnDraw(0xCD0AF2B1),
+    UberTonemapLinearOnDraw(0xD8C3ADEB),
+    UberTonemapLinearOnDraw(0xE651D798),
+    UberTonemapLinearOnDraw(0x6FEECA44),
+    UberTonemapLinearOnDraw(0x6F7A89B5),
+    UberTonemapLinearOnDraw(0x182FA95D),
+    UberTonemapLinearOnDraw(0xC01FA28B),
+    UberTonemapLinearOnDraw(0xB28D0124),
+    UberTonemapLinearOnDraw(0x2C0EA618),
+    UberTonemapLinearOnDraw(0x3B30C94A),
+    UberTonemapLinearOnDraw(0x98999C03),
+    UberTonemapLinearOnDraw(0x65D6A1C7),
+    UberTonemapLinearOnDraw(0x3063B396),
+    UberTonemapLinearOnDraw(0x03522F65),
+    UberTonemapLinearOnDraw(0x6345B89E),
+    UberTonemapLinearOnDraw(0x42A50C71),
+    UberTonemapLinearOnDraw(0x60B48ADF),
+    UberTonemapLinearOnDraw(0x0DE9EBCF),
+    UberTonemapLinearOnDraw(0x1B8038E6),
+    UberTonemapLinearOnDraw(0x9BF686BC),
+    UberTonemapLinearOnDraw(0xE5C37261),
+    UberTonemapLinearOnDraw(0x7B4E81D3),
+    UberTonemapLinearOnDraw(0x8F6AB88F),
+    UberTonemapLinearOnDraw(0xE1F3EA92),
+    UberTonemapLinearOnDraw(0xDA822A11),
+    UberTonemapLinearOnDraw(0xE9A455B7),
+    UberTonemapLinearOnDraw(0xF949F5A6),
+    UberTonemapLinearOnDraw(0xF92506D6),
+    UberTonemapLinearOnDraw(0xFA5BE462),
+    UberTonemapLinearOnDraw(0xFC440F74),
+    UberTonemapLinearOnDraw(0xBBEE8C39),
+    UberTonemapLinearOnDraw(0x8434F830),
+    UberTonemapLinearOnDraw(0x56DCBA40),
+    UberTonemapLinearOnDraw(0x464C5DC7),
+    UberTonemapLinearOnDraw(0xE5AC38E1),
+    UberTonemapLinearOnDraw(0x0D6E178C),
+    UberTonemapLinearOnDraw(0x215E5311),
+    UberTonemapLinearOnDraw(0xB01C6167),
+    UberTonemapGammaOnDraw(0x230619DF),
+    UberTonemapGammaOnDraw(0x74A3CCC8),
+    UberTonemapGammaOnDraw(0x6695772D),
+    UberTonemapGammaOnDraw(0x822AE84C),
+    UberTonemapLinearOnDraw(0x02985F48),
+    UberTonemapGammaOnDraw(0x03F17B55),
+    UberTonemapGammaOnDraw(0x8516BF4C),
+    UberTonemapLinearOnDraw(0x82804C2E),
+    UberTonemapLinearOnDraw(0xDB1A9E91),
+    UberTonemapGammaOnDraw(0x343E55D9),
+    UberTonemapGammaOnDraw(0x0D96CCBA),
         // HD
     UberHDLinearOnDraw(0x0E7B6A15),
     UberHDLinearOnDraw(0x0E883404),
@@ -1374,8 +1408,8 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0x66CCE9A2),
     ////// URP END //////
     ////// CUSTOM START //////
-    Builder3OnDraw(0xF9658F60), // SadCatStudios_ColorGradingLut
-    Builder1OnDraw(0x6C531A2E), // SadCatStudios_ColorGradingLut
+    LutBuilderTonemapOnDraw(0xF9658F60), // SadCatStudios_ColorGradingLut
+    LutBuilderNoTonemapOnDraw(0x6C531A2E), // SadCatStudios_ColorGradingLut
     UberHDLinearOnDraw(0xFF079BBC), // SadCatS
     // tudios_FinalBlit
     UberHDLinearOnDraw(0x99B7B0BF), // SadCatStudios_FinalBlit
@@ -1408,13 +1442,13 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntry(0xD665F9CB),*/
     CustomShaderEntryCallback(0x21AB084F, &CountLinearTonemap1),  // Gamma (Republique)
     //CustomShaderEntry(0x5BDBDECE),
-    CustomShaderEntryCallback(0x0D0F308B, &CountLinearTonemap2),    // Kyoto PostProcess
+    CustomShaderEntryCallback(0x0D0F308B, &CountLinearTonemap1),    // Kyoto PostProcess
     CustomShaderEntryCallback(0x50962AFA, &CountGammaTonemap1),    // EtG gammagamma
     CustomShaderEntryCallback(0xB7AFA999, &CountGammaTonemap1),    // EtG pixelator
-    CustomShaderEntryCallback(0xB587B9F9, &CountLinearTonemap3),    // Frame Composite (Wheel World)
-    CustomShaderEntryCallback(0x2CD4F51E, &UberACESLinear),    // BT ToneMapping
-    CustomShaderEntryCallback(0x60F16875, &UberACESLinear),    // BT ToneMapping
-    CustomShaderEntryCallback(0xF143281D, &UberACESLinear),    // BT ToneMapping
+    UberTonemapLinearOnDraw(0xB587B9F9),    // Frame Composite (Wheel World)
+    CustomShaderEntryCallback(0x2CD4F51E, &UberTonemapLinear),    // BT ToneMapping
+    CustomShaderEntryCallback(0x60F16875, &UberTonemapLinear),    // BT ToneMapping
+    CustomShaderEntryCallback(0xF143281D, &UberTonemapLinear),    // BT ToneMapping
     CustomShaderEntryCallback(0xFDD23A9F, &CountGamma),      // Owlcat FinalBlit
     CustomShaderEntryCallback(0x08D3C61F, &CountGamma),      // Owlcat FinalBlit
     CustomShaderEntryCallback(0x7614050A, &CountGamma),      // Owlcat FinalBlit
@@ -1428,8 +1462,8 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0x2975BCA8, &CountLinear),  // SEB
     CustomShaderEntryCallback(0xF2CD9B88, &CountLinear),  // SEB
     CustomShaderEntryCallback(0xC7DFE6F4, &CountLinear),  // 5Lives Fog of War
-    CustomShaderEntryCallback(0xCE4A6EDF, &CountLinearTonemap2),  // ShNecro, no need count
-    CustomShaderEntryCallback(0x7A4615AA, &CountLinearTonemap2),  // ShNecro
+    UberTonemapLinearOnDraw(0xCE4A6EDF),  // ShNecro
+    UberTonemapLinearOnDraw(0x7A4615AA),  // ShNecro
     CustomShaderEntryCallback(0xF3110A04, &CountGammaTonemap1),    // NOAH Blur
     CustomShaderEntryCallback(0x5DBC623F, &CountGammaTonemap1),    // urpcustom Uberpost
     CustomShaderEntryCallback(0x80C692FC, &CountGammaTonemap1),    // urpcustom Uberpost
@@ -1442,13 +1476,14 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0xD063498D, &Count), // VolFx Dither
     CustomShaderEntryCallback(0x1772A606, &Count), // VHS
     CustomShaderEntryCallback(0x0B302CFA, &CountClamped), // Endroad Sharpen
-    CustomShaderEntryCallback(0x8B223C82, &CountLinearTonemap2),    // Squire tonemap
+    UberTonemapLinearOnDraw(0x8B223C82),    // Squire tonemap
     CustomShaderEntryCallback(0x90ED3547, &CountTonemap1Clamped),  // TGB ColorGrading3D
     CustomShaderEntryCallback(0xEF459349, [](reshade::api::command_list* cmd_list) {    // ClampShader
     shader_injection.isClamped = 1.f;
     return true;
     }),
     CustomShaderEntryCallback(0x3BB46D74, &CountTonemap1),  // MK Glow SM40
+    CustomShaderEntryCallback(0xE0FF806B, &CountLinearTonemap1Clamped), // LUT2DStrip
     /*CustomShaderEntry(0x6CA6AD34),  // FinalVisualAdjustments
     CustomShaderEntry(0x3D4B34E8),*/
     //CustomShaderEntry(0x25AD4F0D),
@@ -1572,7 +1607,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0x1693016B, &CountLinear),       // Bloom
     CustomShaderEntryCallback(0x50ADC1A6, &CountGamma),       // Bloom
     // Amplify Color
-    CustomShaderEntryCallback(0x01C485EF, &CountLinearClamped),
+    CustomShaderEntryCallback(0x01C485EF, &CountLinearTonemap1Clamped),
     CustomShaderEntryCallback(0x8D9A4865, &CountGammaTonemap1Clamped),
     CustomShaderEntryCallback(0x864A0CDA, &CountLinear),
     CustomShaderEntryCallback(0xDF0F14A0, &CountGammaTonemap1),
@@ -1615,7 +1650,11 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0xA206F965, &CountTonemap1),
       // Beautify
     CustomShaderEntryCallback(0x98451591, &CountLinear),
+    CustomShaderEntryCallback(0xFF7EA06B, &CountLinearTonemap1Clamped),
     CustomShaderEntryCallback(0x8B3EF05B, &CountLinearTonemap1),
+    CustomShaderEntryCallback(0x98ADAF37, &CountLinearTonemap1),
+    UberTonemapGammaOnDraw(0x65A3058E), // AgX
+    UberTonemapGammaOnDraw(0x921A619C), // AgX
     CustomShaderEntryCallback(0xCF0602FB, &CountGammaTonemap1),
     CustomShaderEntryCallback(0x1C3A2078, &CountGammaTonemap1),
     CustomShaderEntryCallback(0xA0712B3B, &CountGammaTonemap1),
@@ -1931,6 +1970,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0x8B00D455),
     UberHDGammaOnDraw(0x8C10BEAF),
     UberHDLinearOnDraw(0x8C673209),
+    UberHDLinearOnDraw(0x8E5BE56D),
     UberHDLinearOnDraw(0x8E8030DA),
     UberHDGammaOnDraw(0x8F0A4568),
     UberHDLinearOnDraw(0x9A32E38C),
@@ -1966,6 +2006,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0x085B95F5),
     UberHDLinearOnDraw(0x86D12314),
     UberHDLinearOnDraw(0x86E67F52),
+    UberHDLinearOnDraw(0x89B71A84),
     UberHDGammaOnDraw(0x0105BFBA),
     UberHDLinearOnDraw(0x116ED5A6),
     UberHDLinearOnDraw(0x123EB0AB),
@@ -1982,6 +2023,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0x666FB3A8),
     UberHDLinearOnDraw(0x691CF2FB),
     UberHDLinearOnDraw(0x728A5929),
+    UberHDLinearOnDraw(0x756E88B2),
     UberHDLinearOnDraw(0x783ABD54),
     UberHDLinearOnDraw(0x808BC2A2),
     UberHDGammaOnDraw(0x821B9FB1),
@@ -2041,6 +2083,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDGammaOnDraw(0xC3DC274E),
     UberHDLinearOnDraw(0xC05FCCFB),
     UberHDGammaOnDraw(0xC8C2F1A0),
+    UberHDLinearOnDraw(0xC9C3209E),
     UberHDLinearOnDraw(0xC13DFB36),
     UberHDLinearOnDraw(0xC63B24BB),
     UberHDLinearOnDraw(0xC77C6136),
@@ -2106,6 +2149,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CountGammaTonemap1OnDraw(0x79295705),
     // 0xA1EA3B3E
     CountLinearTonemap1OnDraw(0xA8773EA9),
+    CountGammaTonemap1OnDraw(0xB0A46956),
     CountLinearTonemap1OnDraw(0xB47EF759),
     CountLinearTonemap1OnDraw(0xBA534ADB),
     CountGammaTonemap1OnDraw(0xBFCFF9BC),
@@ -2216,6 +2260,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0xA9F01758, &CountLinearTonemap3),
       // Final Pass
     CustomShaderEntryCallback(0x75838EB7, &CountLinear),
+    CustomShaderEntryCallback(0x5DD99781, &CountLinear),
     ////// PP END //////
     ////// POSTFINAL START //////
       // 
@@ -2292,51 +2337,53 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     ////// POSTFINAL END    //////
     ////// LUTBUILDER START //////
       /// 2D Baker ///
-    Builder1OnDraw(0x6BA3776A),
-    Builder1OnDraw(0x67A66D2D),
-    Builder1OnDraw(0xDE54BEC4),  // TLD merger
+    LutBuilderNoTonemapOnDraw(0x6BA3776A),
+    LutBuilderNoTonemapOnDraw(0x67A66D2D),
+    LutBuilderNoTonemapOnDraw(0xDE54BEC4),  // TLD merger
         // user LUT
-    Builder1OnDraw(0x425A05B0),
-    Builder1OnDraw(0x7EAF565D),
-    Builder1OnDraw(0xA7199AE8),
+    LutBuilderNoTonemapOnDraw(0x425A05B0),
+    LutBuilderNoTonemapOnDraw(0x7EAF565D),
+    LutBuilderNoTonemapOnDraw(0xA7199AE8),
         // Neutral
-    Builder2OnDraw(0x93CAF565),
+    LutBuilderTonemapOnDraw(0x93CAF565),
         // ACES
-    Builder3OnDraw(0x4E674C6E),
+    LutBuilderTonemapOnDraw(0x4E674C6E),
       /// 3D Baker ///
         // No Tonemap
-    Builder1OnDraw(0x34EF56B6),
-    Builder1OnDraw(0x995B320A),
-    Builder1OnDraw(0x96DE38F9),
+    LutBuilderNoTonemapOnDraw(0x34EF56B6),
+    LutBuilderNoTonemapOnDraw(0x995B320A),
+    LutBuilderNoTonemapOnDraw(0x96DE38F9),
         // Neutral
-    Builder2OnDraw(0xBE750C14),
-    Builder2OnDraw(0xC0683CB5),
-    Builder2OnDraw(0xB79884AA),
-    Builder2OnDraw(0xFF0BEDB7),
+    LutBuilderTonemapOnDraw(0xBE750C14),
+    LutBuilderTonemapOnDraw(0xC0683CB5),
+    LutBuilderTonemapOnDraw(0xB79884AA),
+    LutBuilderTonemapOnDraw(0xFF0BEDB7),
+    LutBuilderTonemapOnDraw(0xA82F479C),    // ACES for some reason
         // ACES
-    Builder3OnDraw(0x0D6DE82C),
-    Builder3OnDraw(0x5B6D435F),
-    Builder3OnDraw(0x6EA48EC8),
-    Builder3OnDraw(0x47A1239F),
-    Builder3OnDraw(0xD58102C7),
-    Builder3OnDraw(0xB80155E4),
+    LutBuilderTonemapOnDraw(0x0D6DE82C),
+    LutBuilderTonemapOnDraw(0x5B6D435F),
+    LutBuilderTonemapOnDraw(0x6EA48EC8),
+    LutBuilderTonemapOnDraw(0x47A1239F),
+    LutBuilderTonemapOnDraw(0xD58102C7),
+    LutBuilderTonemapOnDraw(0xB80155E4),
+    LutBuilderTonemapOnDraw(0x1674A947),
         // Custom
-    Builder2OnDraw(0x9192FB27),
+    LutBuilderTonemapOnDraw(0x9192FB27),
       /// Post Fx Lut Generator ///
         // No Tonemap
-    SneakyBuilder1OnDraw(0x30261E46),
-    SneakyBuilder1OnDraw(0x38B119B1),
-    SneakyBuilder1OnDraw(0x09E8D72B),
+    SneakyBuilderNoTonemapOnDraw(0x30261E46),
+    SneakyBuilderNoTonemapOnDraw(0x38B119B1),
+    SneakyBuilderNoTonemapOnDraw(0x09E8D72B),
         // Neutral (variable parameters)
-    SneakyBuilder2OnDraw(0x6A8BFC0E),
-    SneakyBuilder2OnDraw(0x3F73DF46),
-    SneakyBuilder2OnDraw(0xFE6C02F9),
+    SneakyBuilderTonemapOnDraw(0x6A8BFC0E),
+    SneakyBuilderTonemapOnDraw(0x3F73DF46),
+    SneakyBuilderTonemapOnDraw(0xFE6C02F9),
         // ACES
-    SneakyBuilder3OnDraw(0xF70A0EED),
-    SneakyBuilder3OnDraw(0x33891579),
-    SneakyBuilder3OnDraw(0x65D3755B),
-    SneakyBuilder3OnDraw(0x56B8D689),
-    SneakyBuilder3OnDraw(0xAA3605C8),
+    SneakyBuilderTonemapOnDraw(0xF70A0EED),
+    SneakyBuilderTonemapOnDraw(0x33891579),
+    SneakyBuilderTonemapOnDraw(0x65D3755B),
+    SneakyBuilderTonemapOnDraw(0x56B8D689),
+    SneakyBuilderTonemapOnDraw(0xAA3605C8),
     //__ALL_CUSTOM_SHADERS,
     BlitCopyOnDraw(0x8674BE1F),
     BlitCopyOnDraw(0x49E25D6C),
@@ -2351,6 +2398,8 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UpgradeRTVShader(0x3F2260DA), // Sunshafts Composite
     UpgradeRTVShader(0x82ABB5A1), // Sunshafts Composite
     UpgradeRTVShader(0x71A08591), // PostFX DoF
+    // Lightmatter
+    UpgradeRTVReplaceShader(0x48647293), // TemporalReprojection
     //CustomSwapchainShader(0x20133A8B),
 };
 
@@ -2393,12 +2442,12 @@ renodx::utils::settings::Settings settings = {
         .value_type = renodx::utils::settings::SettingValueType::INTEGER,
         .default_value = 3.f,
         .can_reset = true,
-        .label = "Tone Mapper",
+        .label = "Display Mapper",
         .section = "Tone Mapping",
         .tooltip = "Sets the tone mapper type",
-        .labels = {"Vanilla", "None", "Frostbite", "RenoDRT (Hermite Spline)", "DICE"},
+        .labels = {"Vanilla", "None", "Neutwo"},
         .tint = 0x38F6FC,
-        .is_visible = []() { return settings[0]->GetValue() >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return settings[0]->GetValue() >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "toneMapPeakNits",
@@ -2412,7 +2461,6 @@ renodx::utils::settings::Settings settings = {
         .min = 48.f,
         .max = 4000.f,
         .is_enabled = []() { return shader_injection.toneMapType >= 2.f; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "toneMapGameNits",
@@ -2444,83 +2492,72 @@ renodx::utils::settings::Settings settings = {
         .label = "SDR EOTF Emulation",
         .section = "Tone Mapping",
         .tooltip = "Emulates output decoding used on SDR displays.",
-        .labels = {"Off", "2.2", "BT.1886"},
+        .labels = {"SRGB", "2.2", "BT.1886"},
         .tint = 0x38F6FC,
         .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
-        .key = "toneMapPerChannel",
-        .binding = &shader_injection.toneMapPerChannel,
-        .value_type = renodx::utils::settings::SettingValueType::BOOLEAN,
-        .default_value = 1.f,
+        .key = "toneMapScalingMethod",
+        .binding = &shader_injection.toneMapScalingMethod,
+        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
+        .default_value = 0.f,
         .label = "Scaling",
         .section = "Tone Mapping",
         .tooltip = "Luminance scales colors consistently while per-channel saturates and blows out sooner",
-        .labels = {"Luminance", "Per Channel"},
+        .labels = {"Luminance", "Per Channel", "Max Channel"},
         .tint = 0x38F6FC,
-        .is_enabled = []() { return shader_injection.toneMapType >= 3.f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck != 0.f; },
-    },
-    new renodx::utils::settings::Setting{
-        .key = "toneMapColorSpace",
-        .binding = &shader_injection.toneMapColorSpace,
-        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
-        .default_value = 2.f,
-        .label = "Working Color Space",
-        .section = "Tone Mapping",
-        .labels = {"BT709", "BT2020", "AP1"},
-        .tint = 0x38F6FC,
-        .is_enabled = []() { return shader_injection.toneMapType >= 3.f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck == 3.f; },
-    },
-    new renodx::utils::settings::Setting{
-        .key = "toneMapHueProcessor",
-        .binding = &shader_injection.toneMapHueProcessor,
-        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
-        .default_value = 1.f,
-        .label = "Hue Processor",
-        .section = "Tone Mapping",
-        .labels = {"OKLab", "ICtCp", "darktable UCS"},
-        .tint = 0x38F6FC,
-        .is_enabled = []() { return shader_injection.toneMapType >= 3.f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck != 0.f; },
+        .is_enabled = []() { return shader_injection.toneMapType == 2.f; },
+        .is_visible = []() { return current_settings_mode >= 2; },
     },
     new renodx::utils::settings::Setting{
         .key = "toneMapHueShift",
         .binding = &shader_injection.toneMapHueShift,
-        .default_value = 50.f,
-        .label = "Hue Shift",
+        .default_value = 100.f,
+        .label = "SDR Hue Shift",
         .section = "Tone Mapping",
-        .tooltip = "Hue-shift emulation strength.",
         .tint = 0x38F6FC,
         .min = 0.f,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType >= 3.f && shader_injection.toneMapPerChannel == 0.f; },
+        .is_enabled = []() { return shader_injection.toneMapType >= 1.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
-        .key = "toneMapHueCorrection",
-        .binding = &shader_injection.toneMapHueCorrection,
-        .default_value = 0.f,
-        .label = "Hue Correction",
+        .key = "toneMapSDRBlowout",
+        .binding = &shader_injection.toneMapSDRBlowout,
+        .default_value = 100.f,
+        .label = "SDR Blowout",
         .section = "Tone Mapping",
         .tint = 0x38F6FC,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType >= 2.f; },
+        .is_enabled = []() { return shader_injection.toneMapType >= 1.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
-        .key = "toneMapShoulderStart",
-        .binding = &shader_injection.toneMapShoulderStart,
-        .default_value = 1.f,
-        .label = "Rolloff/Shoulder Start",
-        .section = "Tone Mapping",
+        .value_type = renodx::utils::settings::SettingValueType::TEXT,
+        .label = "Set game to Borderless Window and restart it to remove this warning."
+                 "If already Borderless, enable Swapchain Proxy in Advanced Settings.",
+        .section = "Warning",
+        .tint = 0xD82D19,
+        .is_visible = []() { return !finalBlitCheck && shader_injection.swapchainProxy == 0.f; },
+        .is_sticky = true,
+    },
+    new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::TEXT,
+        .label = "Missing output shader, dump required (can be done with devkit)."
+                 "\nSet LUT Shaper to Vanilla for correct output. (may clamp to SDR)",
+        .section = "Warning",
+        .tint = 0xD82D19,
+        .is_visible = []() { return InternalLutCheck == 1.f; },
+        .is_sticky = true,
+    },
+    new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::TEXT,
+        .label = "Vanilla tonemapper and Internal LUT settings are not available in real time."
+                 "\nAny change will only take effect next time LUT is generated.",
+        .section = "Warning",
         .tint = 0x38F6FC,
-        .max = 1.f,
-        .format = "%.2f",
-        .is_visible = []() { return (shader_injection.toneMapType == 2.f || shader_injection.toneMapType == 4.f) && (abs(shader_injection.tonemapCheck) == 1.f); },
+        .is_visible = []() { return InternalLutCheck == 4.f; },
+        .is_sticky = true,
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeExposure",
@@ -2531,7 +2568,8 @@ renodx::utils::settings::Settings settings = {
         .tint = 0x452F7A,
         .max = 2.f,
         .format = "%.2f",
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_enabled = []() { return shader_injection.toneMapType == 2.f; },
+        .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeHighlights",
@@ -2541,8 +2579,9 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.02f; },
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeShadows",
@@ -2552,8 +2591,9 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.02f; },
-        .is_visible = []() { return current_settings_mode >=1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >=1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeContrast",
@@ -2563,8 +2603,8 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.02f; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeSaturation",
@@ -2574,8 +2614,8 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.02f; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeBlowout",
@@ -2583,12 +2623,10 @@ renodx::utils::settings::Settings settings = {
         .default_value = 50.f,
         .label = "Highlights Saturation",
         .section = "Color Grading",
-        .tooltip = "Adds or removes highlights color.",
         .tint = 0x452F7A,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType >= 2.f; },
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.02f; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeDechroma",
@@ -2596,36 +2634,33 @@ renodx::utils::settings::Settings settings = {
         .default_value = 0.f,
         .label = "Blowout",
         .section = "Color Grading",
-        .tooltip = "Controls highlight desaturation due to overexposure.",
         .tint = 0x452F7A,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType >= 2.f; },
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeFlare",
         .binding = &shader_injection.colorGradeFlare,
-        .default_value = 25.f,
+        .default_value = 0.f,
         .label = "Flare",
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType == 3.f; },
+        //.is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeClip",
         .binding = &shader_injection.colorGradeClip,
-        .default_value = 0.f,
+        .default_value = 100.f,
         .label = "Clipping",
         .section = "Color Grading",
         .tint = 0x452F7A,
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.toneMapType == 3.f; },
+        .is_enabled = []() { return shader_injection.toneMapType == 2.f; },
         .parse = [](float value) { return value; },
-        .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeInternalLUTStrength",
@@ -2637,7 +2672,7 @@ renodx::utils::settings::Settings settings = {
         .max = 100.f,
         .is_enabled = []() { return InternalLutCheck != 0.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeInternalLUTScaling",
@@ -2649,7 +2684,7 @@ renodx::utils::settings::Settings settings = {
         .max = 100.f,
         .is_enabled = []() { return InternalLutCheck != 0.f; },
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 2; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeInternalLUTShaper",
@@ -2672,7 +2707,7 @@ renodx::utils::settings::Settings settings = {
         .tint = 0x452F7A,
         .max = 100.f,
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 1 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 1; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeUserLUTScaling",
@@ -2683,7 +2718,7 @@ renodx::utils::settings::Settings settings = {
         .tint = 0x452F7A,
         .max = 100.f,
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return current_settings_mode >= 2 && shader_injection.tonemapCheck != 0.f; },
+        .is_visible = []() { return current_settings_mode >= 2; },
     },
     new renodx::utils::settings::Setting{
         .key = "colorGradeLUTSampling",
@@ -2712,33 +2747,6 @@ renodx::utils::settings::Settings settings = {
         .labels = {"Off", "JPN Modern", "JPN CRT", "JPN CRT 2", "US CRT"},
         .tint = 0x452F7A,
         .is_visible = []() { return current_settings_mode >= 1; },
-    },
-    new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::TEXT,
-        .label = "Set game to Borderless Window and restart it to remove this warning."
-                 "If already Borderless, enable Swapchain Proxy in Advanced Settings.",
-        .section = "Warning",
-        .tint = 0xD82D19,
-        .is_visible = []() { return !finalBlitCheck && shader_injection.swapchainProxy == 0.f; },
-        .is_sticky = true,
-    },
-    new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::TEXT,
-        .label = "Missing output shader, dump required (can be done with devkit)."
-                 "\nSet LUT Shaper to Vanilla for correct output. (may clamp to SDR)",
-        .section = "Warning",
-        .tint = 0xD82D19,
-        .is_visible = []() { return InternalLutCheck == 1.f; },
-        .is_sticky = true,
-    },
-    new renodx::utils::settings::Setting{
-        .value_type = renodx::utils::settings::SettingValueType::TEXT,
-        .label = "Tonemap and color grading are currently not tweakable in real time."
-                 "\nAny change will only take effect next time LUT is generated.",
-        .section = "Warning",
-        .tint = 0x38F6FC,
-        .is_visible = []() { return InternalLutCheck == 4.f; },
-        .is_sticky = true,
     },
     new renodx::utils::settings::Setting{
         .key = "fxBloom",
@@ -2835,7 +2843,7 @@ renodx::utils::settings::Settings settings = {
         .tint = 0x4D7180,
         .max = 100.f,
         .parse = [](float value) { return value * 0.01f; },
-        .is_visible = []() { return shader_injection.tonemapCheck < 2.f; },
+        //.is_visible = []() { return shader_injection.tonemapCheck < 2.f; },
     },
     new renodx::utils::settings::Setting{
         .value_type = renodx::utils::settings::SettingValueType::BUTTON,
@@ -2845,12 +2853,10 @@ renodx::utils::settings::Settings settings = {
         .tint = 0xDB9D47,
         .on_change = []() {
           renodx::utils::settings::UpdateSetting("toneMapType", 3.f);
-          renodx::utils::settings::UpdateSetting("toneMapPerChannel", 1.f);
-          renodx::utils::settings::UpdateSetting("toneMapColorSpace", 2.f);
-          renodx::utils::settings::UpdateSetting("toneMapHueProcessor", 1.f);
-          renodx::utils::settings::UpdateSetting("toneMapHueShift", 50.f);
-          renodx::utils::settings::UpdateSetting("toneMapHueCorrection", 0.f);
-          renodx::utils::settings::UpdateSetting("toneMapShoulderStart", 1.f);
+          renodx::utils::settings::UpdateSetting("toneMapScalingMethod", 1.f);
+          renodx::utils::settings::UpdateSetting("toneMapHueShift", 75.f);
+          renodx::utils::settings::UpdateSetting("toneMapSDRHue", 75.f);
+          renodx::utils::settings::UpdateSetting("toneMapAutoBlowout", 50.f);
           renodx::utils::settings::UpdateSetting("colorGradeExposure", 1.f);
           renodx::utils::settings::UpdateSetting("colorGradeHighlights", 50.f);
           renodx::utils::settings::UpdateSetting("colorGradeShadows", 50.f);
@@ -2858,8 +2864,8 @@ renodx::utils::settings::Settings settings = {
           renodx::utils::settings::UpdateSetting("colorGradeSaturation", 50.f);
           renodx::utils::settings::UpdateSetting("colorGradeBlowout", 50.f);
           renodx::utils::settings::UpdateSetting("colorGradeDechroma", 0.f);
-          renodx::utils::settings::UpdateSetting("colorGradeFlare", 25.f);
-          renodx::utils::settings::UpdateSetting("colorGradeClip", 0.f);
+          renodx::utils::settings::UpdateSetting("colorGradeFlare", 0.f);
+          renodx::utils::settings::UpdateSetting("colorGradeClip", 100.f);
           renodx::utils::settings::UpdateSetting("colorGradeInternalLUTStrength", 100.f);
           renodx::utils::settings::UpdateSetting("colorGradeInternalLUTScaling", 0.f);
           renodx::utils::settings::UpdateSetting("colorGradeInternalLUTShaper", 1.f);
@@ -2870,16 +2876,27 @@ renodx::utils::settings::Settings settings = {
         .is_visible = []() { return shader_injection.tonemapCheck != 0.f; },
     },
     new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::TEXT,
+        .label = "Version: " + std::string(renodx::utils::date::ISO_DATE),
+        .section = "About",
+        .tooltip = std::string(__DATE__),
+    },
+    new renodx::utils::settings::Setting{
         .value_type = renodx::utils::settings::SettingValueType::BUTTON,
-        .label = "AutoHDR Look",
-        .section = "Color Grading Templates",
-        .group = "button-line-1",
-        .tint = 0x452F7A,
-        .on_change = []() {
-          renodx::utils::settings::UpdateSetting("colorGradeExposure", 1.27f);
-          renodx::utils::settings::UpdateSetting("colorGradeContrast", 55.f);
-        },
-        .is_visible = []() { return shader_injection.tonemapCheck >= 2.f; },
+        .label = "Discord",
+        .section = "Links",
+        .group = "button-line-2",
+        .tooltip = "RenoDX server",
+        .tint = 0x5865F2,
+        .on_change = []() { renodx::utils::platform::LaunchURL("https://discord.gg/ren", "odx"); },
+    },
+    new renodx::utils::settings::Setting{
+        .value_type = renodx::utils::settings::SettingValueType::BUTTON,
+        .label = "Github",
+        .section = "Links",
+        .group = "button-line-2",
+        .tooltip = "RenoDX repository",
+        .on_change = []() { renodx::utils::platform::LaunchURL("https://github.com/clshortfuse/renodx"); },
     },
     new renodx::utils::settings::Setting{
         .key = "rolloffUI",
@@ -2893,6 +2910,18 @@ renodx::utils::settings::Settings settings = {
         .labels = {"Do nothing", "Rolloff (peak)", "Clamp (sdr)"},
         .tint = 0x1C1C3C,
         .is_visible = []() { return current_settings_mode >= 2; },
+    },
+    new renodx::utils::settings::Setting{
+        .key = "isTonemappedCheck",
+        .binding = &isTonemappedCheck,
+        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
+        .default_value = 0.f,
+        .can_reset = false,
+        .label = "Check",
+        .section = "Compatibility",
+        .labels = {"Off", "On"},
+        .is_global = true,
+        .is_visible = []() { return false; },
     },
 };
 
@@ -2984,32 +3013,32 @@ bool Blend_OnDrawIndexed(reshade::api::command_list* cmd_list,
 }
 
 void AddLiRTEDUpgrades() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=192,.height=192},
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=256,.height=256},
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=384,.height=384},
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=512,.height=512},
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=768,.height=768},
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=1024,.height=1024},
@@ -3017,7 +3046,7 @@ void AddLiRTEDUpgrades() {
 }
 
 void AddTGTFoAUpgrades() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .ignore_size = false,
@@ -3027,7 +3056,7 @@ void AddTGTFoAUpgrades() {
 }
 
 void AddOPUSPPUpgrades() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .index = 9,
@@ -3046,14 +3075,14 @@ void AddDimhavenUpgrades() {
 }
 
 void AddLISBtSUpgrades() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .index = 0,
           .ignore_size = false,
           .usage_include = reshade::api::resource_usage::render_target,
       });
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .ignore_size = true,
@@ -3063,7 +3092,7 @@ void AddLISBtSUpgrades() {
 }
 
 void AddSmolInternalLutUpgrade() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {256,16},
@@ -3087,6 +3116,8 @@ void AddGamePatches() {
   } else if (filename == "OPUS_ Prism Peak.exe"){
     AddSmolInternalLutUpgrade();
     AddOPUSPPUpgrades();
+  } else if (filename == "LightmatterSub.exe"){
+    AddLISBtSUpgrades();
   } else if (filename == "Tales of Xillia Remastered.exe" || filename == "CONSTANCE.exe") {
     AddSmolInternalLutUpgrade();
   } else if(filename == "Ultros.exe" || filename == "Batbarian Testament of the Primordials.exe"
@@ -3343,6 +3374,13 @@ const std::unordered_map<
             "Life is Strange - Before the Storm.exe",
             {
                 {"Upgrade_R8G8B8A8_TYPELESS", UPGRADE_TYPE_NONE},
+            },
+        },
+        {
+            "LightmatterSub.exe",
+            {
+                {"Upgrade_R8G8B8A8_TYPELESS", UPGRADE_TYPE_NONE},
+                {"Use_Swapchain_Proxy", 1.f},
             },
         },
         {
@@ -3604,7 +3642,7 @@ void AddAdvancedSettings() {
     auto* setting = new renodx::utils::settings::Setting{
         .key = "Swapchain_Encoding",
         .binding = &gammaSpace,
-        .value_type = renodx::utils::settings::SettingValueType::BOOLEAN,
+        .value_type = renodx::utils::settings::SettingValueType::INTEGER,
         .can_reset = false,
         .label = "Swapchain Encoding",
         .section = "Compatibility",
@@ -3647,7 +3685,8 @@ void AddAdvancedSettings() {
         .tooltip = "Moves Tonemap/Color Grading application if possible.",
         .labels = {"0", "1", "2", "3", "4", "5"},
         .tint = 0x1C1C3C,
-        .is_enabled = []() { return shader_injection.tonemapCheck < 2.f && shader_injection.count2Old + count2Offset > 1.f; },
+        //.is_enabled = []() { return shader_injection.tonemapCheck < 2.f && shader_injection.count2Old + count2Offset > 1.f; },
+        .is_enabled = []() { return shader_injection.count2Old + count2Offset > 1.f; },
         .is_global = true,
         .is_visible = []() { return settings[0]->GetValue() >= 2; },
     };
@@ -3782,7 +3821,7 @@ void AddAdvancedSettings() {
     };
     add_setting(setting);
     g_upgrade_copy_destinations = setting->GetValue();
-    renodx::mods::swapchain::use_auto_upgrade = g_upgrade_copy_destinations == 2.f;
+    renodx::mods::swapchain::use_auto_cloning = g_upgrade_copy_destinations == 2.f;
   }
   for (const auto& [key, format] : UPGRADE_TARGETS) {
     auto* new_setting = new renodx::utils::settings::Setting{
@@ -3805,7 +3844,7 @@ void AddAdvancedSettings() {
     add_setting(new_setting);
     auto value = new_setting->GetValue();
     if (value > 0) {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = format,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .ignore_size = (value == UPGRADE_TYPE_ANY),
@@ -3849,7 +3888,7 @@ void AddAdvancedSettings() {
     g_resize_internal_lut = setting->GetValue();
     shader_injection.internalLutResized = 1.f;
     if(g_resize_internal_lut == 1.f){
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=256, .height=16},
@@ -3997,7 +4036,7 @@ void OnPresent(
     const reshade::api::rect* dest_rect,
     uint32_t dirty_rect_count,
     const reshade::api::rect* dirty_rects) {
-        if(unityTonemapper != shader_injection.tonemapCheck){
+        /*if(unityTonemapper != shader_injection.tonemapCheck){
             if(trunc(unityTonemapper) == 3){
         settings[1]->labels = {"Vanilla", "None", "ACES", "RenoDRT (Daniele)", "RenoDRT (Reinhard)"};
         settings[10]->is_enabled = []() { return shader_injection.toneMapType >= 3.f; };
@@ -4030,6 +4069,12 @@ void OnPresent(
         settings[20]->is_enabled = []() { return shader_injection.toneMapType == 3.f; };
         shader_injection.tonemapCheck = unityTonemapper;
             }
+        }*/
+        if(sneakyBuilder || InternalLutCheck == 4.f){
+            isTonemappedCheck = 1.f;
+            //renodx::utils::settings::UpdateSetting("isTonemappedCheck", isTonemappedCheck);
+            reshade::set_config_value(nullptr, "renodx", "isTonemappedCheck", "1");
+            //renodx::utils::settings::SaveGlobalSettings();
         }
         if(lutSampler && lutBuilder){
           InternalLutCheck = 3.f;
@@ -4039,8 +4084,14 @@ void OnPresent(
         } else if(lutBuilder){
           InternalLutCheck = 1.f;
         } else {
-          InternalLutCheck = 0.f;
+          InternalLutCheck = isTonemappedCheck != 0.f ? 4.f : 0.f;
           sneakyBuilder = false;
+        }
+        if(isTonemappedCheck == 1.f && InternalLutCheck != 4.f){
+            isTonemappedCheck = 0.f;
+            //renodx::utils::settings::UpdateSetting("isTonemappedCheck", isTonemappedCheck);
+            //renodx::utils::settings::SaveGlobalSettings();
+            reshade::set_config_value(nullptr, "renodx", "isTonemappedCheck", "0");
         }
         shader_injection.countOld = fmax(1.f, countMid - countOffset);
         shader_injection.count2Old = fmax(1.f, count2Mid - count2Offset);
@@ -4049,12 +4100,15 @@ void OnPresent(
         shader_injection.countNew = 0.f;
         shader_injection.count2New = 0.f;
         unityTonemapper = InternalLutCheck == 4.f || sneakyBuilder ? unityTonemapper : 0;
+        shader_injection.isTonemapped = isTonemapped || isTonemappedCheck == 1.f ? 1.f : 0.f;
+        isTonemapped = InternalLutCheck == 4.f || sneakyBuilder ? shader_injection.isTonemapped == 1.f : false;
         lutSampler = false;
         lutBuilder = false;
         if(shader_injection.gammaSpace != gammaSpace){
             shader_injection.gammaSpace = gammaSpace;
             renodx::utils::settings::UpdateSetting("Swapchain_Encoding", shader_injection.gammaSpace);
-            renodx::utils::settings::SaveGlobalSettings();
+            //renodx::utils::settings::SaveGlobalSettings();
+            reshade::set_config_value(nullptr, "renodx", "Swapchain_Encoding", "shader_injection.gammaSpace");
         }
         if(blitCopyHack >= 2.f){
           shader_injection.blitCopyHack = blitCopyHack - 1.f;
@@ -4067,7 +4121,6 @@ void OnPresent(
         toggleBlitHack = blitCopyCheck;
         blitCopyCheck = 0.f;
         shader_injection.isClamped = shader_injection.isClamped < 2.f ? 0.f : shader_injection.isClamped;
-        //finalBlitDraws = 0.f;
 }
 
 bool initialized = false;
@@ -4086,13 +4139,13 @@ BOOL APIENTRY DllMain(HMODULE h_module, DWORD fdw_reason, LPVOID lpv_reserved) {
     case DLL_PROCESS_ATTACH:
       if (!reshade::register_addon(h_module)) return FALSE;
       if (!initialized) {
-      MergeShaders();
       //renodx::mods::swapchain::swapchain_proxy_compatibility_mode = false;
+      MergeShaders();
       renodx::mods::swapchain::swapchain_proxy_revert_state = true;
       //renodx::mods::shader::force_pipeline_cloning = true;
       //renodx::mods::shader::expected_constant_buffer_space = 50;
       renodx::mods::shader::expected_constant_buffer_index = 13;
-      //renodx::mods::shader::allow_multiple_push_constants = true;
+      renodx::mods::shader::allow_multiple_push_constants = true;
       //renodx::mods::shader::revert_constant_buffer_ranges = true;
       renodx::mods::swapchain::expected_constant_buffer_index = 13;
       renodx::mods::swapchain::expected_constant_buffer_space = 50;
@@ -4100,7 +4153,7 @@ BOOL APIENTRY DllMain(HMODULE h_module, DWORD fdw_reason, LPVOID lpv_reserved) {
       renodx::utils::random::binds.push_back(&shader_injection.random);
       AddAdvancedSettings();
       //  internal LUT
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+      renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=1024, .height=32},

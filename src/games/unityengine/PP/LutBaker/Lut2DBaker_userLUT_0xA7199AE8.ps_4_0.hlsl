@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t0 : register(t0);
 SamplerState s0_s : register(s0);
@@ -26,7 +26,7 @@ void main(
   r2.xyz = cb0[28].www * r1.xzw;
   r2.xyz = lutShaper(r2.xyz, true, 2);
   float3 preCG = renodx::color::srgb::DecodeSafe(r2.xyz);
-  float3 sdrColor = renodx::tonemap::renodrt::NeutralSDR(preCG);
+  /*float3 sdrColor = renodx::tonemap::renodrt::NeutralSDR(preCG);
   float3 userLutInput = injectedData.toneMapType == 0.f ? saturate(preCG) : sdrColor;
   renodx::lut::Config lut_config = renodx::lut::config::Create();
   lut_config.lut_sampler = s0_s;
@@ -43,7 +43,8 @@ void main(
   if (injectedData.toneMapType != 0.f) {
     lut_config.strength = 1.f;
     r0.xyz = renodx::tonemap::UpgradeToneMap(preCG, userLutInput, r0.xyz, injectedData.colorGradeUserLUTStrength);
-  }
+  }*/
+  r0.xyz = handleUserLUT(preCG, t0, s0_s, cb0[29].xyz, 0, true, true);
   preCG = r0.xyz;
   r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
   r0.xyz = -r2.xyz + r0.xyz;
@@ -53,9 +54,9 @@ void main(
   }
   r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
   r0.xyz = lerp(preCG, r0.xyz, injectedData.colorGradeInternalLUTStrength);
-  if (injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)) {
-    r0.xyz = applyUserNoTonemap(r0.xyz);
-  }
+  /*if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }*/
   r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
   o0.xyz = r0.xyz;
   o0.w = 1;

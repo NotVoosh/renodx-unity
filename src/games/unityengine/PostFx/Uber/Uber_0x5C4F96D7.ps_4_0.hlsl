@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -100,6 +100,9 @@ void main(
   }
   if(injectedData.toneMapType == 0.f){
     r0.xyz = saturate(r0.xyz);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   r1.xy = v1.xy * cb0[6].xy + cb0[6].zw;
   r1.xyzw = t7.Sample(s1_s, r1.xy).xyzw;

@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -176,6 +176,9 @@ void main(
   r0.w = min(1, abs(r0.w));
   r0.w = 1 + -r0.w;
   r0.xyz = r1.xxx * r0.www + r0.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   if (cb0[43].x > 0.5) {
     r3.w = renodx::color::y::from::BT709(saturate(r0.xyz));
   }

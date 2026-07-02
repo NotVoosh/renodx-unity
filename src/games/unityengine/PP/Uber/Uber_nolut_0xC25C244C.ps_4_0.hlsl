@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t6 : register(t6);
 Texture2D<float4> t5 : register(t5);
@@ -105,8 +105,8 @@ void main(
     r0.x = -1 + r0.w;
     o0.w = r1.x * r0.x + 1;
   }
-  if (injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)) {
-    r1.yzw = applyUserNoTonemap(r1.yzw);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.yzw = GradeAndDisplayMap(r1.yzw);
   }
   if(injectedData.fxFilmGrainType == 0.f){
   r0.xy = w1.xy * cb0[41].xy + cb0[41].zw;

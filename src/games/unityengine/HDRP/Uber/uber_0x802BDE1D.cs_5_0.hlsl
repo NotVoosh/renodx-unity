@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -137,6 +137,9 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
     } else {
       r0.xyz = renodx::lut::SampleTetrahedral(t4, r1.xyz, 1 / cb1[6].x);
     }
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   u0[vThreadID] = r0.xyzx;
   return;

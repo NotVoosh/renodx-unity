@@ -1,4 +1,4 @@
-#include "../common.hlsl"
+#include "../common.hlsli"
 
 cbuffer _Globals : register(b0){
   float4 unity_Lightmap_HDR : packoffset(c0);

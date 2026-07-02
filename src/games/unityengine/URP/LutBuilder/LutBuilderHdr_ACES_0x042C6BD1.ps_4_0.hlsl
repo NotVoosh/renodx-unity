@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -194,7 +194,7 @@ void main(
   r1.w = dot(float3(-0.00552588282,0.00402521016,1.00150073), r0.xyz);
   r0.xyz = mul(ACES_to_SRGB_MAT, r1.yzw);
   r0.xyz = lerp(preCG, r0.xyz, injectedData.colorGradeInternalLUTStrength);
-  r0.xyz = applyUserTonemapACES(r0.xyz, 1);
+  r0.xyz = Ap1AcesTonemap(r0.xyz, 1);
   o0.xyz = r0.xyz;
   o0.w = 1;
   return;

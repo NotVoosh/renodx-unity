@@ -1,4 +1,4 @@
-#include "../common.hlsl"
+#include "../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture3D<float4> t2 : register(t2);
@@ -34,6 +34,9 @@ void main(
   r1.xyz = lutShaper(r1.xyz);
   r1.xyz = r1.xyz * cb0[0].yyy + cb0[0].zzz;
   r1.xyz = t2.SampleLevel(s1_s, r1.xyz, 0).xyz;
+  if(injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
+  }
   r0.z = dot(saturate(r1.xyz), float3(0.212672904,0.715152204,0.0721750036));
   r0.zw = -cb0[4].xz + r0.zz;
   r2.xy = cb0[4].yw + -cb0[4].xz;

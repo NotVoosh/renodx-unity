@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -9,6 +9,8 @@ SamplerState s0_s : register(s0);
 cbuffer cb0 : register(b0){
   float4 cb0[139];
 }
+
+// Nocturnal
 
 void main(
   float4 v0 : SV_POSITION0,
@@ -29,7 +31,7 @@ void main(
   r0.xyzw = t0.SampleBias(s0_s, r0.zw, cb0[19].x).xyzw;
   r0.x = r1.x;
   r0.y = r2.y;
-  r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  r0.xyz = fastSrgbDecodeSafe(r0.xyz);
   r2.xyzw = t1.SampleBias(s0_s, v1.xy, cb0[19].x).xyzw;
   r2.xyz = r2.xyz * r2.xyz;
   if (cb0[131].x > 0) {
@@ -59,11 +61,11 @@ void main(
   }
   r0.xyz = cb0[128].www * r0.xyz;
   if (cb0[129].w > 0) {
-    r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
-    r2.xyz = handleUserLUT(r0.xyz, t4, s0_s, cb0[129].xyz);
+    r1.xyz = fastSrgbEncodeSafe(r0.xyz);
+    r2.xyz = handleUserLUT(r0.xyz, t4, s0_s, cb0[129].xyz, 1);
     r2.xyz = r2.xyz + -r1.xyz;
     r1.xyz = cb0[129].www * r2.xyz + r1.xyz;
-    r0.xyz = renodx::color::srgb::DecodeSafe(r1.xyz);
+    r0.xyz = fastSrgbDecodeSafe(r1.xyz);
   }
   r0.xyz = lutShaper(r0.xyz, false, 1);
   if (injectedData.colorGradeLUTSampling == 0.f) {
@@ -83,10 +85,13 @@ void main(
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t3, r0.xyz, cb0[128].z + 1u);
   }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz, true);
   } else {
-    r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
+    r0.xyz = fastSrgbEncodeSafe(r0.xyz);
   }
   o0.xyz = r0.xyz;
   o0.w = 1;

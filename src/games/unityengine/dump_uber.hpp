@@ -59,12 +59,13 @@ struct __declspec(uuid("a4c8e2f1-6b3d-4a9e-8f7c-1d2e3b4c5d6e")) CommandListData 
 };
 
 inline bool IsInternalLutDimensions(std::uint32_t width, std::uint32_t height) {
-  return (width == 1024u && height == 32u) || (width == 256u && height == 16u);
+  return (width == 1024u && height == 32u) || (width == 256u && height == 16u) || (width == 33u && height == 33u);
 }
 
 inline bool IsInternalLutDesc(const reshade::api::resource_desc& desc) {
   switch (desc.type) {
     case reshade::api::resource_type::texture_2d:
+    case reshade::api::resource_type::texture_3d:
     case reshade::api::resource_type::surface:
       return IsInternalLutDimensions(desc.texture.width, desc.texture.height);
     default:

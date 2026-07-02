@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t11 : register(t11);
 Texture2D<float4> t10 : register(t10);
@@ -151,6 +151,9 @@ void main(
     r0.xyz = exp2(r0.xyz);
   } else {
     r0.xyz = renodx::math::SignPow(r0.xyz, cb0[7].y);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   r1.xy = v1.xy * cb0[6].xy + cb0[6].zw;
   r1.xyzw = t11.Sample(s1_s, r1.xy).xyzw;

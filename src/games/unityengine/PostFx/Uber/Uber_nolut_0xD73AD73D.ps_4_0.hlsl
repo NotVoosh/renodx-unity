@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -11,6 +11,8 @@ SamplerState s0_s : register(s0);
 cbuffer cb0 : register(b0){
   float4 cb0[14];
 }
+
+// AER: Memories of Old
 
 void main(
   float4 v0 : SV_POSITION0,
@@ -59,8 +61,8 @@ void main(
   r2.xyz = fastSrgbDecodeSafe(r1.xyz);
   r1.xyz = r2.xyz + -r0.xyz;
   r0.xyz = cb0[13].www * r1.xyz + r0.xyz;
-  if (injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)) {
-    r0.xyz = applyUserNoTonemap(r0.xyz);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);

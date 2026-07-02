@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture3D<float4> t3 : register(t3);
@@ -15,8 +15,6 @@ cbuffer cb1 : register(b1){
 cbuffer cb0 : register(b0){
   float4 cb0[55];
 }
-
-#define cmp -
 
 // Cheap Car Repair
 
@@ -147,6 +145,9 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r1.xyz = r3.xyz + -r2.xyz;
   r0.yzw = r0.yyy * r1.xyz + r2.xyz;
   r2.xyz = cb1[12].w == 0.0 ? r0.yzw : r3.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r2.xyz = GradeAndDisplayMap(r2.xyz);
+  }
   u0[vThreadID] = r2.xyzw;
   return;
 }

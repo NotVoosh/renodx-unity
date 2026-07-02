@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t6 : register(t6);
 Texture3D<float4> t5 : register(t5);
@@ -137,17 +137,16 @@ void main(
   } else {
     r1.yzw = renodx::lut::SampleTetrahedral(t5, r0.xyz, 1 / cb0[36].x);
   }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.yzw = GradeAndDisplayMap(r1.yzw);
+  }
   if (cb0[42].x > 0.5) {
     r1.x = renodx::color::y::from::BT709(saturate(r1.yzw));
   } else {
     r1.x = r0.w;
   }
   if (injectedData.countOld == injectedData.countNew) {
-<<<<<<< HEAD
     r1.yzw = PostToneMapScale(r1.yzw);
-=======
-    r0.xyz = PostToneMapScale(r0.xyz);
->>>>>>> 2b1d3d40 (feat(unityengine): add Deer & Boy shader)
   }
   o0.xyzw = r1.yzwx;
   return;

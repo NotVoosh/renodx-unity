@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -56,7 +56,7 @@ void main(
   r0.xyzw = v1.xyxy * float4(2,2,2,2) + float4(-1,-1,-1,-1);
   r1.x = dot(r0.zw, r0.zw);
   r0.xyzw = r1.xxxx * r0.xyzw;
-  r0.xyzw = cb0[125].xxxx * r0.xyzw;
+  r0.xyzw = cb0[125].xxxx * r0.xyzw * injectedData.fxCA;
   r2.xyzw = t0.Sample(s0_s, r1.zw).xyzw;
   r0.xyzw = r0.xyzw * float4(-0.333333343,-0.333333343,-0.666666687,-0.666666687) + v1.xyxy;
   r0.xyzw = float4(-0.5,-0.5,-0.5,-0.5) + r0.xyzw;
@@ -186,7 +186,7 @@ void main(
     r0.xyz = r1.xyz * r0.xyz;
   }
   r0.xyz = cb0[117].www * r0.xyz;
-  r0.xyz = applyUserTonemapNeutral(r0.xyz);
+  r0.xyz = NeutralTonemap(r0.xyz);
   r0.xyz = lutShaper(r0.xyz, false, 1);
   if (cb0[118].w > 0) {
     r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
@@ -224,11 +224,8 @@ void main(
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t2, r0.xyz, cb0[117].z + 1u);
   }
-  float3 newPeak = renodx::lut::Sample(t2, s0_s, lutShaper((injectedData.toneMapPeakNits / injectedData.toneMapGameNits), false, 1), cb0[117].z + 1u) * injectedData.toneMapGameNits;
-  float newPeakY = renodx::color::y::from::BT709(newPeak);
-  float ratio = renodx::math::DivideSafe(injectedData.toneMapPeakNits / newPeakY, 1.f);
-  if(ratio < 0.985f){
-    r0.xyz = rolloff(r0.xyz, ratio);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);

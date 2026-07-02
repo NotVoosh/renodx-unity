@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture3D<float4> t3 : register(t3);
@@ -142,7 +142,10 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r0.y = saturate(r2.w * cb1[13].x + cb1[13].y);
   r1.xyz = r3.xyz + -r2.xyz;
   r0.yzw = r0.yyy * r1.xyz + r2.xyz;
-  r0.xyz = cb1[12].w == 0.0 ? (injectedData.toneMapType >= 2.f ? rolloff(r0.yzw, 0.85f) : r0.yzw) : r3.xyz;
+  r0.xyz = cb1[12].w == 0.0 ? r0.yzw : r3.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r2.xyz = renodx::math::SignSqrt(r0.xyz);
   u0[vThreadID] = r2;
   return;

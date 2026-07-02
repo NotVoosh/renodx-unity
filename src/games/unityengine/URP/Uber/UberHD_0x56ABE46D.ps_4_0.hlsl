@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -70,6 +70,9 @@ void main(
     r1.xyz = cb0[133].www * r2.xyz + r1.xyz;
     r0.xyz = fastSrgbDecodeSafe(r1.xyz);
   }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r1.xy = v1.xy * cb0[146].xy + cb0[146].zw;
   r1.xyzw = t4.SampleBias(s1_s, r1.xy, cb0[5].x).xyzw;
   r0.w = r1.w * 2 + -1;
@@ -80,7 +83,7 @@ void main(
   r0.w = r1.x * r0.w;
   if(injectedData.toneMapType == 0.f){
     r0.xyz = saturate(fastSrgbEncode(r0.xyz));
-    r0.xyz = applyDither(r0.xyz, r0.w * (1.0 / 255.0));
+    r0.xyz = applyDither(r0.xyz, r0.w * (1.0 / 255.0)); // doublecheck encoding
     r0.xyz = max(0.f, fastSrgbDecode(r0.xyz));
   } else {
     r0.xyz = applyDither(r0.xyz, r0.w * (1.0 / 255.0));

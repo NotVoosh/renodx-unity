@@ -1,4 +1,4 @@
-#include "../common.hlsl"
+#include "../common.hlsli"
 
 Texture2D<float4> t1 : register(t1);
 Texture2D<float4> t0 : register(t0);
@@ -37,20 +37,20 @@ void main(
   config.contrast = injectedData.colorGradeContrast;
   config.mid_gray_value = midGray;
   config.mid_gray_nits = midGray * 100;
-  config.saturation = injectedData.colorGradeSaturation;
+  //config.saturation = injectedData.colorGradeSaturation;
   config.reno_drt_highlights = 1.02f;
   config.reno_drt_contrast = 1.12f;
-  config.reno_drt_dechroma = injectedData.colorGradeDechroma;
-  config.reno_drt_blowout = 1.f - injectedData.colorGradeBlowout;
-  config.reno_drt_flare = 0.10f * pow(injectedData.colorGradeFlare, 10.f);
-  config.hue_correction_type = injectedData.toneMapPerChannel != 0.f ? renodx::tonemap::config::hue_correction_type::INPUT
-                                                                     : renodx::tonemap::config::hue_correction_type::CUSTOM;
-  config.hue_correction_strength = injectedData.toneMapHueCorrection;
+  //config.reno_drt_dechroma = injectedData.colorGradeDechroma;
+  //config.reno_drt_blowout = 1.f - injectedData.colorGradeBlowout;
+  //config.reno_drt_flare = 0.10f * pow(injectedData.colorGradeFlare, 10.f);
+  //config.hue_correction_type = injectedData.toneMapPerChannel != 0.f ? renodx::tonemap::config::hue_correction_type::INPUT
+//                                                                     : renodx::tonemap::config::hue_correction_type::CUSTOM;
+  //config.hue_correction_strength = injectedData.toneMapHueCorrection;
   config.hue_correction_color = lerp(r0.xyz, hueCorrectionColor, injectedData.toneMapHueShift);
-  config.reno_drt_hue_correction_method = injectedData.toneMapHueProcessor;
+  //config.reno_drt_hue_correction_method = injectedData.toneMapHueProcessor;
   config.reno_drt_tone_map_method = injectedData.toneMapType == 3.f ? renodx::tonemap::renodrt::config::tone_map_method::REINHARD
                                                                     : renodx::tonemap::renodrt::config::tone_map_method::DANIELE;
-  config.reno_drt_per_channel = injectedData.toneMapPerChannel != 0.f;
+  //config.reno_drt_per_channel = injectedData.toneMapPerChannel != 0.f;
   config.reno_drt_working_color_space = 0;
   config.reno_drt_white_clip = injectedData.colorGradeClip == 0.f ? 1.f : injectedData.colorGradeClip;
   if (injectedData.toneMapType == 0.f) {

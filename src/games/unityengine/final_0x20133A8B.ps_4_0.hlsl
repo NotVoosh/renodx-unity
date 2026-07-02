@@ -26,24 +26,13 @@ float3 FinalizeOutput(float3 color, bool gamma) {
   [branch]
   if (injectedData.toneMapType == 0.f) {
     color = renodx::color::bt709::clamp::BT709(color);
-    color = min(injectedData.toneMapGameNits, color);
-  } else if(injectedData.toneMapType >= 2.f) {
-    color = renodx::color::bt709::clamp::BT2020(color);
-    color = min(injectedData.toneMapPeakNits, color);
-    /*color = renodx::color::bt709::clamp::AP1(color);
-    color = renodx::color::bt2020::from::BT709(color);
-    float grayscale = renodx::color::y::from::BT2020(color);
-    const float MID_GRAY_LINEAR = 1 / (pow(10, 0.75));                          // ~0.18f
-    const float MID_GRAY_PERCENT = 0.5f;                                        // 50%
-    const float MID_GRAY_GAMMA = log(MID_GRAY_LINEAR) / log(MID_GRAY_PERCENT);  // ~2.49f
-    float encode_gamma = MID_GRAY_GAMMA;
-    float3 encoded = renodx::color::gamma::EncodeSafe(color, encode_gamma);
-    float encoded_gray = renodx::color::gamma::Encode(grayscale, encode_gamma);
-    float3 compressed = renodx::color::correct::GamutCompress(encoded, encoded_gray);
-    color = renodx::color::gamma::DecodeSafe(compressed, encode_gamma);
-    color = renodx::color::bt709::from::BT2020(color);
+    //color = min(injectedData.toneMapGameNits, color);
+  } else if (injectedData.toneMapType >= 2.f) {
+    color = renodx::color::lms::from::BT709(color);
+    color = renodx::color::gamut::GamutCompressLMSBoundBT2020(color);
+    color = renodx::color::bt709::from::LMS(color);
     float max_channel = max(max(max(color.r, color.g), color.b), injectedData.toneMapPeakNits);
-    color *= injectedData.toneMapPeakNits / max_channel;  // Clamp UI or Videos*/
+    color *= injectedData.toneMapPeakNits / max_channel;  // Clamp UI or Videos
   }
   [branch]
   if(injectedData.processing_use_scrgb == 0.f){

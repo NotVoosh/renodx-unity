@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -158,7 +158,7 @@ void main(
     r0.y = r5.y;
   }
   r0.xyz = cb0[145].www * r0.xyz;
-  r0.xyz = applyUserTonemapNeutral(r0.xyz);
+  r0.xyz = NeutralTonemap(r0.xyz);
   if (cb0[146].w > 0) {
     r2.xyz = fastSrgbEncodeSafe(r0.xyz);
     r3.xyz = handleUserLUT(r0.xyz, t2, s0_s, cb0[146].xyz, 1);
@@ -200,15 +200,8 @@ void main(
   r0.w = cb0[161].x * cb0[161].y;
   r1.xyz = r1.xxx + -r0.xyz;
   r0.xyz = r0.www * r1.xyz + r0.xyz;
-  float3 newPeak = renodx::lut::Sample(t1, s0_s, lutShaper((injectedData.toneMapPeakNits / injectedData.toneMapGameNits), false, 1), cb0[145].z + 1u) * injectedData.toneMapGameNits;
-  float3 encodedNewPeak = renodx::color::arri::logc::c1000::Encode(newPeak, false);
-  encodedNewPeak = encodedNewPeak + float3(-0.4135884,-0.4135884,-0.4135884);
-  encodedNewPeak = encodedNewPeak * cb0[160].zzz + float3(0.4135884, 0.4135884, 0.4135884);
-  newPeak = renodx::color::arri::logc::c1000::Decode(encodedNewPeak, false);
-  float newPeakY = renodx::color::y::from::BT709(newPeak);
-  float ratio = renodx::math::DivideSafe(injectedData.toneMapPeakNits / newPeakY, 1.f);
-  if(ratio < 0.985f){
-    r0.xyz = rolloff(r0.xyz, ratio);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   r1.xy = v1.xy * cb0[158].xy + cb0[158].zw;
   r1.xyzw = t3.SampleBias(s1_s, r1.xy, cb0[4].x).xyzw;

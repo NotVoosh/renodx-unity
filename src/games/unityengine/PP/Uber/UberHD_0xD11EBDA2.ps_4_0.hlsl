@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture3D<float4> t6 : register(t6);
@@ -316,6 +316,9 @@ void main(
     r3.xyz = r1.xyz * cb0[47].xyz + -r1.xyz;
     r2.xyz = cb0[50].xxx * r3.xyz + r1.xyz;
     r0.w = 1;
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r2.xyz = GradeAndDisplayMap(r2.xyz);
   }
   r1.xy = v1.xy * cb0[35].xy + cb0[35].zw;
   r1.xyzw = t0.Sample(s0_s, r1.xy).xyzw;

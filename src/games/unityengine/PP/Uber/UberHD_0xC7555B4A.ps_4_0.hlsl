@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t5 : register(t5);
 Texture2D<float4> t4 : register(t4);
@@ -72,9 +72,6 @@ void main(
   r0.xyzw = r2.xyzw * r0.xyzw + r1.xyzw;
   r0.xyzw = cb0[33].zzzz * r0.xyzw;
   o0.w = r0.w;
-  /*r0.xyz = r0.xyz * float3(5.55555582,5.55555582,5.55555582) + float3(0.0479959995,0.0479959995,0.0479959995);
-  r0.xyz = log2(r0.xyz);
-  r0.xyw = saturate(r0.xyz * float3(0.0734997839,0.0734997839,0.0734997839) + float3(0.386036009,0.386036009,0.386036009));*/
   r0.xyw = lutShaper(r0.xyz);
   if(injectedData.colorGradeLUTSampling == 0.f){
   r1.x = floor(r0.w);
@@ -85,6 +82,9 @@ void main(
   r0.xyzw = t5.Sample(s5_s, r0.xzw).xyzw;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t5, r0.xyw, 1 / cb0[33].x);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   r1.xy = v1.xy * cb0[27].xy + cb0[27].zw;
   r1.xyzw = t0.Sample(s0_s, r1.xy).xyzw;

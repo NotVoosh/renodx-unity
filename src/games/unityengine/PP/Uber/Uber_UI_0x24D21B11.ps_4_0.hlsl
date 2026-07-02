@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -50,12 +50,8 @@ void main(
     r0.xyz = renodx::lut::SampleTetrahedral(t3, r0.yzx, cb0[36].z + 1u);
   }
   r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
-  if(injectedData.tonemapCheck > 1.f || injectedData.count2Old < injectedData.count2New){
-    float newPeak = renodx::lut::Sample(t3, s3_s, lutShaper((injectedData.toneMapPeakNits / injectedData.toneMapGameNits).xxx, false, 2), cb0[36].z + 1u).x * injectedData.toneMapGameNits;
-    float ratio = injectedData.toneMapPeakNits / newPeak;
-    if(ratio < 0.992f){
-      r0.xyz = rolloff(r0.xyz, ratio);
-    }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   r1.xy = v1.xy * cb0[30].xy + cb0[30].zw;
   r1.xyzw = t0.Sample(s0_s, r1.xy).xyzw;

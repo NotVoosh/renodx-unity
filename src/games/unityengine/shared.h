@@ -5,8 +5,8 @@
 #define RENODX_TONE_MAP_CLAMP_PEAK                    -1.f
 #define RENODX_RENO_DRT_NEUTRAL_SDR_CLAMP_PEAK        -1
 #define RENODX_RENO_DRT_NEUTRAL_SDR_CLAMP_COLOR_SPACE -1
-#define RENODX_RENO_DRT_NEUTRAL_SDR_TONE_MAP_METHOD   renodx::tonemap::renodrt::config::tone_map_method::HERMITE_SPLINE
-#define RENODX_RENO_DRT_NEUTRAL_SDR_WHITE_CLIP        20.f
+#define RENODX_RENO_DRT_NEUTRAL_SDR_TONE_MAP_METHOD   renodx::tonemap::renodrt::config::tone_map_method::NEUTWO
+#define RENODX_RENO_DRT_NEUTRAL_SDR_WHITE_CLIP        2.f
 
 #include "../../shaders/renodx.hlsl"
 #endif
@@ -20,59 +20,59 @@ struct ShaderInjectData {
   float toneMapUINits;
 
   float toneMapGammaCorrection;
-  float toneMapHueProcessor;
+  float toneMapScalingMethod;
   float toneMapHueShift;
-  float toneMapHueCorrection;
+  float toneMapSDRBlowout;
 
-  float toneMapColorSpace;
-  float toneMapPerChannel;
-  float toneMapShoulderStart;
   float colorGradeExposure;
-
   float colorGradeHighlights;
   float colorGradeShadows;
   float colorGradeContrast;
+  
   float colorGradeSaturation;
-
   float colorGradeBlowout;
   float colorGradeDechroma;
   float colorGradeFlare;
-  float colorGradeClip;
 
+  float colorGradeClip;
   float colorGradeInternalLUTStrength;
   float colorGradeInternalLUTScaling;
   float colorGradeInternalLUTShaper;
-  float colorGradeLUTSampling;
 
+  float colorGradeLUTSampling;
   float colorGradeUserLUTStrength;
   float colorGradeUserLUTScaling;
   float colorGradeColorSpace;
-  float fxBloom;
 
+  float fxBloom;
   float fxLens;
   float fxDoF;
   float fxVignette;
-  float fxCA;
 
+  float fxCA;
   float fxNoise;
   float fxFilmGrain;
   float fxFilmGrainType;
-  float fxHdrBoost;
 
+  float fxHdrBoost;
   float random;
   float tonemapCheck;
   float countOld;
-  float countNew;
 
+  float countNew;
   float count2Old;
   float count2New;
   float blitCopyHack;
+  
   float gammaSpace;
-
   float isClamped;
   float swapchainProxy;
   float rolloffUI;
+
   float processing_use_scrgb;
+  float isTonemapped;
+  float padding03;
+  float padding04;
 };
 
 #ifndef __cplusplus

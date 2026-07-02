@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t5 : register(t5);
 Texture2D<float4> t4 : register(t4);
@@ -82,6 +82,9 @@ void main(
   r1.xyzw = t3.Sample(s3_s, r0.xyz).xyzw;
   } else {
     r1.xyz = renodx::lut::SampleTetrahedral(t3, r0.xyz, 1 / cb0[36].x);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
   }
   r0.xyz = r1.xyz;
   r1.xy = v1.xy * cb0[30].xy + cb0[30].zw;

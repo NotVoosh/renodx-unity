@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -64,6 +64,9 @@ void main(
     r1.z = dot(float3(0.272000015,0.533999979,0.130999997), r0.xyz);
     r1.xyz = r1.xyz + -r0.xyz;
     r0.xyz = cb0[15].xxx * r1.xyz + r0.xyz;
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if(injectedData.fxFilmGrainType == 0.f){
   r1.xy = v1.xy * cb0[12].xy + cb0[12].zw;

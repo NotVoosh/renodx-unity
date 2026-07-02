@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -20,6 +20,7 @@ cbuffer cb0 : register(b0){
   float4 cb0[43];
 }
 
+// Dimhaven - The Lost Source
 #define cmp -
 
 void main(
@@ -235,6 +236,9 @@ void main(
   r1.xyzw = t5.Sample(s5_s, r0.xyz).wxyz;
   } else {
     r1.yzw = renodx::lut::SampleTetrahedral(t5, r0.xyz, 1 / cb0[36].x);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.yzw = GradeAndDisplayMap(r1.yzw);
   }
   if (cb0[42].x > 0) {
     r1.x = renodx::color::y::from::BT709(saturate(r1.yzw));

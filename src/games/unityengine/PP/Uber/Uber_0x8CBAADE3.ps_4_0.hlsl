@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t5 : register(t5);
 Texture2D<float4> t4 : register(t4);
@@ -122,6 +122,9 @@ void main(
     r0.xyz = renodx::lut::SampleTetrahedral(t4, r0.yzx, cb0[36].z + 1u);
   }
   r2.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r2.xyz = GradeAndDisplayMap(r2.xyz);
+  }
   if (cb0[42].x > 0.5) {
     r2.w = renodx::color::y::from::BT709(saturate(r2.xyz));
   }

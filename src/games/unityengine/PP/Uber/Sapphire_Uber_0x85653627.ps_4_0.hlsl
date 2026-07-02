@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -50,7 +50,7 @@ void main(
   r1.xyzw = t0.Sample(s0_s, v1.xy).xyzw;
   r2.xyz = r0.xyz * cb0[4].zzz * injectedData.fxBloom + r1.xyz;
   r1.w = saturate(r1.w);
-  r2.xyz = applyUserTonemapSapphire(r2.xyz);
+  r2.xyz = Bt709AcesTonemap(r2.xyz);
   r0.xyz = -r2.xyz + r0.xyz;
   r3.xy = saturate(float2(-0.2,-0.5) + cb0[24].xx);
   r0.w = 8 * r3.x;
@@ -67,6 +67,7 @@ void main(
   }
   r2.xyz = cb0[23].xyz + -r0.xyz;
   r0.xyz = r2.www * r2.xyz + r0.xyz;
+  r0.xyz = GradeAndDisplayMap(r0.xyz);
   r2.xy = v1.xy * cb0[22].xy + cb0[22].zw;
   r2.xyzw = t7.Sample(s7_s, r2.xy).xyzw;
   r0.w = r2.w * 2 + -1;
