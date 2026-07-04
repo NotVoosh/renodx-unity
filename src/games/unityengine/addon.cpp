@@ -1443,6 +1443,8 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0xCEEF2538, &CountClamped), // CRT
     CustomShaderEntryCallback(0xD063498D, &Count), // VolFx Dither
     CustomShaderEntryCallback(0x1772A606, &Count), // VHS
+    CustomShaderEntryCallback(0x2B66789E, &CountClamped), // ResolutionPresenterSharpen
+    CustomShaderEntryCallback(0x4785A73B, &CountLinearClamped), // PS1PostProcessing
     CustomShaderEntryCallback(0x0B302CFA, &CountClamped), // Endroad Sharpen
     CustomShaderEntryCallback(0x8B223C82, &CountLinearTonemap2),    // Squire tonemap
     CustomShaderEntryCallback(0x90ED3547, &CountTonemap1Clamped),  // TGB ColorGrading3D
@@ -1994,6 +1996,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0x1666C38C),
     UberHDLinearOnDraw(0x2258B26B),
     UberHDLinearOnDraw(0x2706BB7A),
+    UberHDLinearOnDraw(0x3675BEA9),
     UberHDLinearOnDraw(0x5032F099),
     UberHDGammaOnDraw(0x5616E459),
     UberHDOnDraw(0x6073A121),
@@ -2021,6 +2024,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     UberHDLinearOnDraw(0xA31D6E8F),
     UberHDLinearOnDraw(0xA46C1ECB),
     UberHDLinearOnDraw(0xA66D3ADA),
+    UberHDLinearOnDraw(0xA885A390),
     UberHDGammaOnDraw(0xA932CAC7),
     UberHDLinearOnDraw(0xA9229E77),
     UberHDLinearOnDraw(0xA34705B5),
@@ -2218,6 +2222,7 @@ UberNeutralLinearOnDraw(0xB68DCF9E),
     CustomShaderEntryCallback(0xA9F01758, &CountLinearTonemap3),
       // Final Pass
     CustomShaderEntryCallback(0x75838EB7, &CountLinear),
+    CustomShaderEntryCallback(0xC7216130, &CountLinear),
     ////// PP END //////
     ////// POSTFINAL START //////
       // 
