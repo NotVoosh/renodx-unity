@@ -3035,16 +3035,7 @@ void AddTGTFoAUpgrades() {
       });
 }
 
-void AddOPUSPPUpgrades() {
-      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
-          .old_format = reshade::api::format::r8g8b8a8_typeless,
-          .new_format = reshade::api::format::r16g16b16a16_typeless,
-          .index = 9,
-          .ignore_size = false,
-      });
-}
-
-void AddDimhavenUpgrades() {
+void AddIndex0Upgrade() {
       renodx::mods::swapchain::resource_upgrade_infos.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
@@ -3092,10 +3083,10 @@ void AddGamePatches() {
   } else if (filename == "TheEternalDie.exe") {
     AddLiRTEDUpgrades();
   } else if (filename == "Dimhaven Enigmas.exe" || filename == "Dimhaven - The Lost Source.exe") {
-    AddDimhavenUpgrades();
+    AddIndex0Upgrade();
   } else if (filename == "OPUS_ Prism Peak.exe"){
     AddSmolInternalLutUpgrade();
-    AddOPUSPPUpgrades();
+    AddIndex0Upgrade();
   } else if (filename == "Tales of Xillia Remastered.exe" || filename == "CONSTANCE.exe") {
     AddSmolInternalLutUpgrade();
   } else if(filename == "Ultros.exe" || filename == "Batbarian Testament of the Primordials.exe"
