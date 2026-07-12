@@ -67,7 +67,7 @@ void main(
     r1.w = (int)r1.w + 1;
   }
   r1.xyzw = r4.xyzw / r5.xyzw;
-  r0.yzx = renodx::color::srgb::DecodeSafe(r1.xyz);
+  r0.yzw = renodx::color::srgb::DecodeSafe(r1.xyz);
   r1.xyz = r0.yzw * r0.xxx;
   r0.xyzw = float4(-1,-1,1,1) * cb0[32].xyxy;
   r2.x = 0.5 * cb0[34].x;
