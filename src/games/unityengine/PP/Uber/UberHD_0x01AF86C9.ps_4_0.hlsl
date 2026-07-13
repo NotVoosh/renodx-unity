@@ -26,7 +26,7 @@ void main(
 
   r0.xyzw = t1.Sample(s1_s, v1.xy).xyzw;
   r1.xyzw = t0.Sample(s0_s, w1.xy).xyzw;
-  r0.yzx = renodx::color::srgb::DecodeSafe(r1.xyz);
+  r0.yzw = renodx::color::srgb::DecodeSafe(r1.xyz);
   r0.xyz = r0.yzw * r0.xxx;
   if (cb0[40].y < 0.5) {
     r1.xy = -cb0[38].xy + v1.xy;

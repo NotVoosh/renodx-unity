@@ -28,7 +28,7 @@ void main(
 
   r0.xyzw = t1.Sample(s1_s, v1.xy).xyzw;
   r1.xyzw = t0.Sample(s0_s, w1.xy).xyzw;
-  r0.yzx = renodx::color::srgb::DecodeSafe(r1.xyz);
+  r0.yzw = renodx::color::srgb::DecodeSafe(r1.xyz);
   r1.xyz = r0.yzw * r0.xxx;
   r0.xyzw = float4(-1,-1,1,1) * cb0[32].xyxy;
   r2.x = 0.5 * cb0[34].x;
