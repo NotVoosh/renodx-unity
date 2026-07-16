@@ -1,15 +1,17 @@
 #include "../../common.hlsl"
 
+Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
 Texture2D<float4> t1 : register(t1);
 Texture2D<float4> t0 : register(t0);
+SamplerState s1_s : register(s1);
 SamplerState s0_s : register(s0);
 cbuffer cb0 : register(b0){
-  float4 cb0[147];
+  float4 cb0[149];
 }
 
-// Cat Mail Co.
+// RACCOIN: Coin Pusher Roguelike
 
 void main(
   float4 v0 : SV_POSITION0,
@@ -20,14 +22,24 @@ void main(
   uint4 bitmask, uiDest;
   float4 fDest;
 
-  r0.xy = -cb0[132].xy * float2(0.5,0.5) + cb0[28].xy;
-  r0.xy = min(v1.xy, r0.xy);
-  r0.xyzw = t0.SampleBias(s0_s, r0.xy, cb0[4].x).xyzw;
-  r1.xy = -cb0[136].xy * float2(0.5,0.5) + cb0[28].xy;
-  r1.xy = min(v1.xy, r1.xy);
-  r1.xyzw = t1.SampleBias(s0_s, r1.xy, cb0[4].x).xyzw;
-  r1.xyz = cb0[139].xxx * r1.xyz * injectedData.fxBloom;
-  r0.xyz = r1.xyz * cb0[139].yzw + r0.xyz;
+  r0.xyzw = -cb0[132].xyxy * float4(0.5,0.5,0.5,0.5) + cb0[28].xyxy;
+  r1.xy = min(v1.xy, r0.zw);
+  r1.xyzw = t0.SampleBias(s0_s, r1.xy, cb0[4].x).xyzw;
+  r2.xyzw = v1.xyxy * float4(2,2,2,2) + float4(-1,-1,-1,-1);
+  r1.y = dot(r2.zw, r2.zw);
+  r2.xyzw = r2.xyzw * r1.yyyy;
+  r2.xyzw = cb0[144].xxxx * r2.xyzw * injectedData.fxCA;
+  r2.xyzw = r2.xyzw * float4(-0.333333343,-0.333333343,-0.666666687,-0.666666687) + v1.xyxy;
+  r0.xyzw = min(r2.xyzw, r0.xyzw);
+  r2.xyzw = t0.SampleBias(s0_s, r0.xy, cb0[4].x).xyzw;
+  r0.xyzw = t0.SampleBias(s0_s, r0.zw, cb0[4].x).xyzw;
+  r1.yz = -cb0[136].xy * float2(0.5,0.5) + cb0[28].xy;
+  r1.yz = min(v1.xy, r1.yz);
+  r3.xyzw = t1.SampleBias(s0_s, r1.yz, cb0[4].x).xyzw;
+  r1.yzw = cb0[139].xxx * r3.xyz * injectedData.fxBloom;
+  r0.x = r1.x;
+  r0.y = r2.y;
+  r0.xyz = r1.yzw * cb0[139].yzw + r0.xyz;
   if (cb0[146].z > 0) {
     r1.xy = -cb0[146].xy + v1.xy;
     r1.yz = cb0[146].zz * abs(r1.xy) * min(1.f, injectedData.fxVignette);
@@ -45,20 +57,7 @@ void main(
   r0.xyz = cb0[137].www * r0.xyz;
   if (cb0[138].w > 0) {
     r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
-    r2.xyz = cb0[138].zzz * r1.zxy;
-    r0.w = floor(r2.x);
-    r2.xw = float2(0.5,0.5) * cb0[138].xy;
-    r2.yz = r2.yz * cb0[138].xy + r2.xw;
-    r2.x = r0.w * cb0[138].y + r2.y;
-    r3.xyzw = t3.SampleLevel(s0_s, r2.xz, 0).xyzw;
-    r4.x = cb0[138].y;
-    r4.y = 0;
-    r2.xy = r4.xy + r2.xz;
-    r2.xyzw = t3.SampleLevel(s0_s, r2.xy, 0).xyzw;
-    r0.w = r1.z * cb0[138].z + -r0.w;
-    r2.xyz = r2.xyz + -r3.xyz;
-    r2.xyz = r0.www * r2.xyz + r3.xyz;
-    r2.xyz = handleUserLUT(r0.xyz, t3, s0_s, cb0[138].xyz);
+    r2.xyz = handleUserLUT(r0.xyz, t4, s0_s, cb0[138].xyz);
     r2.xyz = r2.xyz + -r1.xyz;
     r1.xyz = cb0[138].www * r2.xyz + r1.xyz;
     r0.xyz = renodx::color::srgb::DecodeSafe(r1.xyz);
@@ -70,16 +69,30 @@ void main(
   r1.xy = float2(0.5,0.5) * cb0[137].xy;
   r1.yz = r0.xy * cb0[137].xy + r1.xy;
   r1.x = r0.w * cb0[137].y + r1.y;
-  r2.xyzw = t2.SampleLevel(s0_s, r1.xz, 0).xyzw;
+  r2.xyzw = t3.SampleLevel(s0_s, r1.xz, 0).xyzw;
   r0.x = cb0[137].y;
   r0.y = 0;
   r0.xy = r1.xz + r0.xy;
-  r1.xyzw = t2.SampleLevel(s0_s, r0.xy, 0).xyzw;
+  r1.xyzw = t3.SampleLevel(s0_s, r0.xy, 0).xyzw;
   r0.x = r0.z * cb0[137].z + -r0.w;
   r0.yzw = r1.xyz + -r2.xyz;
   r0.xyz = r0.xxx * r0.yzw + r2.xyz;
   } else {
-    r0.xyz = renodx::lut::SampleTetrahedral(t2, r0.xyz, cb0[137].z + 1u);
+    r0.xyz = renodx::lut::SampleTetrahedral(t3, r0.xyz, cb0[137].z + 1u);
+  }
+  if (injectedData.fxFilmGrainType == 0.f) {
+  r1.xy = v1.xy * cb0[148].xy + cb0[148].zw;
+  r1.xyzw = t2.SampleBias(s1_s, r1.xy, cb0[4].x).xyzw;
+  r0.w = -0.5 + r1.w;
+  r0.w = r0.w + r0.w;
+  r1.x = renodx::color::y::from::BT709(saturate(r0.xyz));
+  r1.x = sqrt(r1.x);
+  r1.x = cb0[147].y * -r1.x + 1;
+  r1.yzw = r0.xyz * r0.www;
+  r1.yzw = cb0[147].xxx * r1.yzw * injectedData.fxFilmGrain;
+  r0.xyz = r1.yzw * r1.xxx + r0.xyz;
+  } else {
+    r0.xyz = applyFilmGrain(r0.xyz, v1);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);
