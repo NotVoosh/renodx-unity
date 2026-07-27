@@ -25,6 +25,7 @@ namespace {
 float unityTonemapper = 0.f; // 1 = none, 2 = neutral/sapphire/custom, 3 = ACES
 float g_dump_shaders = 0.f;
 float g_use_swapchain_proxy = 0.f;
+float g_upgrade_internal_lut = 1.f;
 float countMid = 0.f;
 float countOffset = 0.f;
 float count2Mid = 0.f;
@@ -3080,6 +3081,16 @@ void AddLISBtSUpgrades() {
       });
 }
 
+void AddSolateriaUpgrades() {
+      renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
+          .old_format = reshade::api::format::r8g8b8a8_typeless,
+          .new_format = reshade::api::format::r16g16b16a16_typeless,
+          .index = 0,
+          .dimensions = {1024,32},
+          .usage_include = reshade::api::resource_usage::render_target,
+      });
+}
+
 void AddSmolInternalLutUpgrade() {
       renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
@@ -3105,6 +3116,9 @@ void AddGamePatches() {
   } else if (filename == "OPUS_ Prism Peak.exe"){
     AddSmolInternalLutUpgrade();
     AddIndex0Upgrade();
+  } else if (filename == "Solateria.exe"){
+    g_upgrade_internal_lut = 0.f;
+    AddSolateriaUpgrades();
   } else if (filename == "Tales of Xillia Remastered.exe" || filename == "CONSTANCE.exe") {
     AddSmolInternalLutUpgrade();
   } else if(filename == "Ultros.exe" || filename == "Batbarian Testament of the Primordials.exe"
@@ -3498,6 +3512,12 @@ const std::unordered_map<
             {
                 {"Upgrade_R8G8B8A8_TYPELESS", UPGRADE_TYPE_ANY},
                 {"Blit_Copy_Hack", 3.f},
+            },
+        },
+        {
+            "Solateria.exe",
+            {
+                {"Upgrade_R11G11B10_FLOAT", UPGRADE_TYPE_OUTPUT_SIZE},
             },
         },
         {
@@ -4117,14 +4137,16 @@ BOOL APIENTRY DllMain(HMODULE h_module, DWORD fdw_reason, LPVOID lpv_reserved) {
       renodx::mods::swapchain::use_resource_cloning = true;
       renodx::utils::random::binds.push_back(&shader_injection.random);
       AddAdvancedSettings();
+      AddGamePatches();
       //  internal LUT
+      if(g_upgrade_internal_lut == 1.f){
       renodx::mods::swapchain::swap_chain_upgrade_targets.push_back({
           .old_format = reshade::api::format::r8g8b8a8_typeless,
           .new_format = reshade::api::format::r16g16b16a16_typeless,
           .dimensions = {.width=1024, .height=32},
           .usage_include = reshade::api::resource_usage::render_target,
       });
-      AddGamePatches();
+    }
       //reshade::register_event<reshade::addon_event::init_device>(OnInitDevice);
       reshade::register_event<reshade::addon_event::init_device>(CreateBlendPipeline);
       reshade::register_event<reshade::addon_event::destroy_device>(DestroyBlendPipeline);
