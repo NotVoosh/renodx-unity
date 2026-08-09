@@ -28,7 +28,11 @@ void main(
 
   r0.xyzw = t2.Sample(s2_s, v1.xy).xyzw;
   r1.xyzw = t1.Sample(s1_s, w1.xy).xyzw;
-  r0.yzw = renodx::color::srgb::DecodeSafe(r1.xyz);
+  if (injectedData.countOld < injectedData.countNew) {
+    r0.yzw = InvertToneMapScale(r1.xyz, true);
+  } else {
+    r0.yzw = renodx::color::srgb::DecodeSafe(r1.xyz);
+  }
   r1.xyz = r0.yzw * r0.xxx;
   r0.xyzw = float4(1,1,-1,0) * cb0[32].xyxy;
   r2.xyzw = saturate(-r0.xywy * cb0[34].xxxx + v1.xyxy);
@@ -117,7 +121,7 @@ void main(
   r0.w = 1 + -r0.w;
   r0.w = r1.x * r0.w;
   r2.xyz = applyDither(r0.xyz, r0.w * (1.0 / 255.0));
-  if (injectedData.countOld == injectedData.countNew) {
+  if (injectedData.countOld <= injectedData.countNew) {
     r2.xyz = PostToneMapScale(r2.xyz, true);
   } else {
     r2.xyz = renodx::color::srgb::EncodeSafe(r2.xyz);
