@@ -24,17 +24,27 @@ void main(
   r0.xyzw = t0.Sample(s1_s, v1.xy).xyzw;
   r1.xyzw = t1.Sample(s0_s, v1.xy).xyzw;
   r0.xyz = cb0[4].xyz * r0.xyz;
+
+  bool gamma = injectedData.gammaSpace != 0.f;
+  if (gamma) {
+    r1.xyz = renodx::color::srgb::DecodeSafe(r1.xyz);
+    r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  }
   // Original composited with an LDR screen blend (1-(1-a)*(1-b)) that breaks above 1.0; add bloom instead.
   float3 scene = r1.xyz + r0.xyz;
-  // Scene-final pass before UI: user color grading, then film grain, then the
-  // game-brightness (nits) scale the final blit expects.
+  // Scene-final pass before UI: user color grading, film grain, highlight
+  // rolloff, dither, then the game-brightness (nits) scale the final blit
+  // expects. Arknights registers no Uber-family shaders, so countOld/countNew
+  // never match; scale unconditionally. PostToneMapScale re-encodes sRGB when
+  // the chain is gamma.
   scene = grading(scene);
   if (injectedData.fxFilmGrainType != 0.f) {
     scene = applyFilmGrain(scene, v1);
   }
-  if (injectedData.countOld == injectedData.countNew) {
-    scene = PostToneMapScale(scene, injectedData.gammaSpace != 0.f);
-  }
+  scene = rolloff(scene);
+  float3 dither = renodx::random::Hash33(float3(v1 * 4096.f, injectedData.random)) * 2.f - 1.f;
+  scene = applyDither(scene, dither * (1.f / 255.f));
+  scene = PostToneMapScale(scene, gamma);
   o0.xyz = scene;
   o0.w = r1.w + r0.w - r1.w * r0.w;
   return;
