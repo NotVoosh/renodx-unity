@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2DArray<float4> t3 : register(t3);
 Texture2DArray<float4> t2 : register(t2);
@@ -45,12 +45,14 @@ void main(
   if (injectedData.fxFilmGrainType == 0.f) {
     r0.xyz = r2.xyz * r0.xxx + r0.yzw;
   } else {
-    r0.rgb = applyFilmGrain(r0.gba, v1);
+    r0.xyz = applyFilmGrain(r0.yzw, v1);
   }
   r1.z = 0;
   r2.xyzw = t2.SampleLevel(s0_s, r1.xyz, 0).xyzw;
   o0.xyz = r2.www * r0.xyz + r2.xyz;
   o0.w = (cb0[5].x == 1.0) ? r1.w : 1;
-  o0.rgb = PostToneMapScale(o0.rgb);
+  if (injectedData.countOld == injectedData.countNew) {
+    o0.xyz = PostToneMapScale(o0.xyz);
+  }
   return;
 }

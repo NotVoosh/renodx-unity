@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -66,8 +66,8 @@ void main(
   r4.w = 0.0625 * r0.w;
   r0.xyzw = r4.xyzw + r1.xyzw;
   r0.xyzw = r2.wxyz * r3.wxyz + r0.wxyz;
-  if (injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)) {
-    r0.yzw = applyUserNoTonemap(r0.yzw);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.yzw = GradeAndDisplayMap(r0.yzw);
   }
   if (cb0[42].x > 0.5) {
     r0.x = renodx::color::y::from::BT709(saturate(r0.yzw));

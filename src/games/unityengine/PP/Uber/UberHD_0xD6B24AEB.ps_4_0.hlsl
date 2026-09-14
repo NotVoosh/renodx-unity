@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -70,9 +70,6 @@ void main(
   r0.w = 0;
   r0.xyzw = r1.xyzw + r0.xyzw;
   r0.xyzw = cb0[33].zzzz * r0.xyzw;
-  /*r0.xyz = r0.xyz * float3(5.55555582,5.55555582,5.55555582) + float3(0.0479959995,0.0479959995,0.0479959995);
-  r0.xyz = log2(r0.xyz);
-  r1.xyw = saturate(r0.xyz * float3(0.0734997839,0.0734997839,0.0734997839) + float3(0.386036009,0.386036009,0.386036009));*/
   r1.xyw = lutShaper(r0.xyz);
   if(injectedData.colorGradeLUTSampling == 0.f){
   r0.x = floor(r1.w);
@@ -83,6 +80,9 @@ void main(
   r1.xyzw = t4.Sample(s4_s, r1.xzw).xyzw;
   } else {
     r1.xyz = renodx::lut::SampleTetrahedral(t4, r1.xyw, 1 / cb0[33].x);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r1.xyz = PostToneMapScale(r1.xyz);

@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -8,6 +8,8 @@ SamplerState s0_s : register(s0);
 cbuffer cb0 : register(b0){
   float4 cb0[143];
 }
+
+// 9 Years of Shadows
 
 void main(
   float4 v0 : SV_POSITION0,
@@ -19,7 +21,7 @@ void main(
   float4 fDest;
 
   r0.xyzw = t0.SampleBias(s0_s, v1.xy, cb0[5].x).xyzw;
-  r1.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  r1.xyz = fastSrgbDecodeSafe(r0.xyz);
   r2.xyzw = t1.SampleBias(s0_s, v1.xy, cb0[5].x).xyzw;
   r2.xyz = r2.xyz * r2.xyz;
   if (cb0[135].x > 0) {
@@ -45,11 +47,11 @@ void main(
   }
   r0.xyz = cb0[132].www * r0.xyz;
   if (cb0[133].w > 0) {
-    r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
-    r2.xyz = handleUserLUT(r0.xyz, t3, s0_s, cb0[133].xyz);
+    r1.xyz = fastSrgbEncodeSafe(r0.xyz);
+    r2.xyz = handleUserLUT(r0.xyz, t3, s0_s, cb0[133].xyz, 1);
     r2.xyz = r2.xyz + -r1.xyz;
     r1.xyz = cb0[133].www * r2.xyz + r1.xyz;
-    r0.xyz = renodx::color::srgb::DecodeSafe(r1.xyz);
+    r0.xyz = fastSrgbDecodeSafe(r1.xyz);
   }
   r0.xyz = lutShaper(r0.xyz, false, 1);
   if(injectedData.colorGradeLUTSampling == 0.f){
@@ -68,6 +70,9 @@ void main(
   r0.xyz = r0.xxx * r0.yzw + r2.xyz;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t2, r0.xyz, cb0[132].z + 1u);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz, true);

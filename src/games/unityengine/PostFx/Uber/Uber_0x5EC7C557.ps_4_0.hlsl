@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t5 : register(t5);
 Texture2D<float4> t4 : register(t4);
@@ -102,8 +102,11 @@ void main(
   if(injectedData.toneMapType == 0.f){
     r0.xyz = saturate(r0.xyz);
   }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   if(injectedData.fxFilmGrainType == 0.f){
-    r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
+  r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
   r1.xy = v1.xy * cb0[5].xy + cb0[5].zw;
   r1.xyzw = t4.Sample(s1_s, r1.xy).xyzw;
   r1.xyz = r1.xyz * r0.xyz;

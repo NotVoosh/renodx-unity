@@ -1,4 +1,4 @@
-#include "./tonemap.hlsl"
+#include "./common.hlsli"
 
 Texture2D<float4> t0 : register(t0);
 SamplerState s0_s : register(s0);
@@ -17,7 +17,7 @@ void main(
         o0.xyz = renodx::color::srgb::DecodeSafe(o0.xyz);
       }
       if (injectedData.blitCopyHack != 2.f && (injectedData.count2Old == injectedData.count2New)) {
-        o0.xyz = applyUserNoTonemap(o0.xyz);
+        o0.xyz = GradeAndDisplayMap(o0.xyz);
       }
       if(injectedData.gammaSpace != 0.f){
       if(injectedData.countOld == injectedData.countNew) {

@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -45,19 +45,6 @@ void main(
   r0.xyz = cb0[137].www * r0.xyz;
   if (cb0[138].w > 0) {
     r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
-    r2.xyz = cb0[138].zzz * r1.zxy;
-    r0.w = floor(r2.x);
-    r2.xw = float2(0.5,0.5) * cb0[138].xy;
-    r2.yz = r2.yz * cb0[138].xy + r2.xw;
-    r2.x = r0.w * cb0[138].y + r2.y;
-    r3.xyzw = t3.SampleLevel(s0_s, r2.xz, 0).xyzw;
-    r4.x = cb0[138].y;
-    r4.y = 0;
-    r2.xy = r4.xy + r2.xz;
-    r2.xyzw = t3.SampleLevel(s0_s, r2.xy, 0).xyzw;
-    r0.w = r1.z * cb0[138].z + -r0.w;
-    r2.xyz = r2.xyz + -r3.xyz;
-    r2.xyz = r0.www * r2.xyz + r3.xyz;
     r2.xyz = handleUserLUT(r0.xyz, t3, s0_s, cb0[138].xyz);
     r2.xyz = r2.xyz + -r1.xyz;
     r1.xyz = cb0[138].www * r2.xyz + r1.xyz;
@@ -80,6 +67,9 @@ void main(
   r0.xyz = r0.xxx * r0.yzw + r2.xyz;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t2, r0.xyz, cb0[137].z + 1u);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);

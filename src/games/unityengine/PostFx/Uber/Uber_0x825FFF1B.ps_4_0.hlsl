@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t8 : register(t8);
 Texture2D<float4> t7 : register(t7);
@@ -84,9 +84,6 @@ void main(
   r2.xyz = cb0[11].zzz * r2.zxy * injectedData.fxLens;
   r0.xyz = r1.xyz * r2.xyz + r0.xyz;
   r0.xyz = cb0[12].www * r0.xyz;
-  /*r0.xyz = r0.xyz * float3(5.55555582,5.55555582,5.55555582) + float3(0.0479959995,0.0479959995,0.0479959995);
-  r0.xyz = log2(r0.xyz);
-  r0.xyz = saturate(r0.xyz * float3(0.0734997839,0.0734997839,0.0734997839) + float3(0.386036009,0.386036009,0.386036009));*/
   r0.yzx = lutShaper(r0.yzx);
   if(injectedData.colorGradeLUTSampling == 0.f){
   r0.yzw = cb0[12].zzz * r0.xyz;
@@ -131,6 +128,9 @@ void main(
   r2.xyz = handleUserLUT(r0.xyz, t7, s8_s, cb0[13].xyz, 1, true);
   r1.xyz = r2.xyz + -r0.xyz;
   r0.xyz = cb0[13].www * r1.xyz + r0.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r1.xy = v1.xy * cb0[6].xy + cb0[6].zw;
   r1.xyzw = t8.Sample(s1_s, r1.xy).xyzw;
   r0.w = r1.w * 2 + -1;

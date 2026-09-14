@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -153,10 +153,10 @@ void main(
     r0.xyz = r1.xyz * r0.xyz;
   }
   r0.xyz = cb0[128].www * r0.xyz;
-  /*r1.y = dot(float3(0.439700991,0.382977992,0.177334994), r0.xyz);
+  r1.y = dot(float3(0.439700991,0.382977992,0.177334994), r0.xyz);
   r1.z = dot(float3(0.0897922963,0.813422978,0.0967615992), r0.xyz);
-  r1.w = dot(float3(0.0175439995,0.111543998,0.870703995), r0.xyz);*/
-  r1.xyz = applyUserTonemapACES(r0.xyz, 1);
+  r1.w = dot(float3(0.0175439995,0.111543998,0.870703995), r0.xyz);
+  r1.xyz = Ap1AcesTonemap(r1.yzw, 1);
   if (cb0[129].w > 0) {
     r0.xyz = renodx::color::srgb::EncodeSafe(r1.xyz);
     r2.xyz = handleUserLUT(r1.xyz, t3, s0_s, cb0[129].xyz);
@@ -181,6 +181,9 @@ void main(
   r0.xyz = r0.xxx * r0.yzw + r3.xyz;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t2, r1.xyz, cb0[128].z + 1u);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);

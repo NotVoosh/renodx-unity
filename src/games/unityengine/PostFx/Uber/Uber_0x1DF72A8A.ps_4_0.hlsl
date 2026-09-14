@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t6 : register(t6);
 Texture2D<float4> t5 : register(t5);
@@ -72,6 +72,9 @@ void main(
   r1.xyz = handleUserLUT(r0.xyz, t5, s6_s, cb0[13].xyz, 1, true);
   r1.xyz = r1.xyz + -r0.xyz;
   r0.xyz = cb0[13].www * r1.xyz + r0.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r1.xy = v1.xy * cb0[6].xy + cb0[6].zw;
   r1.xyzw = t6.Sample(s1_s, r1.xy).xyzw;
   r0.w = r1.w * 2 + -1;

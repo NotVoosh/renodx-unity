@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -125,12 +125,15 @@ void main(
   r1.xyzw = t4.Sample(s4_s, r0.zw).xyzw;
   r0.x = r0.x * cb0[12].z + -r0.y;
   r0.yzw = r1.xyz + -r3.xyz;
-  r0.xyz = saturate(r0.xxx * r0.yzw + r3.xyz);
+  r0.xyz = r0.xxx * r0.yzw + r3.xyz;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t4, r0.yzx, cb0[12].z + 1u);
   }
   if(injectedData.toneMapType == 0.f){
     r0.xyz = saturate(r0.xyz);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
   r0.xyz = PostToneMapScale(r0.xyz, true);

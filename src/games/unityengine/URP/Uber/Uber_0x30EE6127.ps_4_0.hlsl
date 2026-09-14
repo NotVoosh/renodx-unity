@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -84,6 +84,9 @@ void main(
   r1.w = saturate(r1.w);
   r1.xyz = r1.xyz + -r0.xyz;
   r1.xyz = r1.www * r1.xyz + r0.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
+  }
   if (injectedData.countOld == injectedData.countNew) {
     r1.xyz = PostToneMapScale(r1.xyz);
   }

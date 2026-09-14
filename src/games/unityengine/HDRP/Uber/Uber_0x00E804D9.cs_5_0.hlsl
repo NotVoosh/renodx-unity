@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t6 : register(t6);
 Texture3D<float4> t5 : register(t5);
@@ -150,6 +150,9 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
     }
     r0.xyz = r0.xyz + -r2.xyz;
     r1.xyz = r0.www * r0.xyz + r2.xyz;
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
   }
   u0[vThreadID] = r1.xyzx;
   return;

@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t3 : register(t3);
 Texture2D<float4> t2 : register(t2);
@@ -66,8 +66,11 @@ void main(
     r1.xyz = cb0[133].www * r2.xyz + r1.xyz;
     r0.xyz = fastSrgbDecodeSafe(r1.xyz);
   }
-  //r0.xyz = fastSrgbDecodeSafe(r0.xyz);
+  //r0.xyz = fastSrgbDecodeSafe(r0.xyz);  // doublecheck encoding
   r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r1.xy = v1.xy * cb0[146].xy + cb0[146].zw;
   r1.xyzw = t3.SampleBias(s1_s, r1.xy, cb0[5].x).xyzw;
   r0.w = r1.w * 2 + -1;

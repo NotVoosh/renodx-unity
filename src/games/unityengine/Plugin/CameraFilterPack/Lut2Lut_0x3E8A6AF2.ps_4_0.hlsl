@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t2 : register(t2);
 Texture3D<float4> t1 : register(t1);
@@ -29,8 +29,8 @@ void main(
   r1.xyz = r1.xyz + -r0.xyz;
   r0.xyz = cb0[2].yyy * r1.xyz + r0.xyz;
   r0.xyz = renodx::math::SignPow(r0.xyz, 2.f);
-  if(injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)){
-    r0.xyz = applyUserNoTonemap(r0.xyz);
+  if(injectedData.count2Old == injectedData.count2New){
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld == injectedData.countNew) {
   r0.xyz = PostToneMapScale(r0.xyz);

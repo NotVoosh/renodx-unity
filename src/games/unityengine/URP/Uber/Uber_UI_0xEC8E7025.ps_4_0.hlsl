@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t2 : register(t2);
 Texture2D<float4> t1 : register(t1);
@@ -60,12 +60,9 @@ void main(
   }
   if(injectedData.toneMapType == 0.f){
     r0.xyz = saturate(r0.xyz);
-  } else if(injectedData.tonemapCheck > 1.f || injectedData.count2Old < injectedData.count2New){
-  float newPeak = renodx::lut::Sample(t1, s0_s, lutShaper((injectedData.toneMapPeakNits / injectedData.toneMapGameNits).xxx, false, 1), cb0[138].z + 1u).x * injectedData.toneMapGameNits;
-  float ratio = injectedData.toneMapPeakNits / newPeak;
-  if(ratio < 0.992f){
-    r0.xyz = rolloff(r0.xyz, ratio);
   }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.countOld <= injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz, true);

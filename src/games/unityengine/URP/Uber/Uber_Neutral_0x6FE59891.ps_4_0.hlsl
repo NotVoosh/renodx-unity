@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -53,7 +53,7 @@ void main(
     r0.xyz = r1.xyz * r0.xyz;
   }
   r0.xyz = cb0[137].www * r0.xyz;
-  r0.xyz = applyUserTonemapNeutral(r0.xyz);
+  r0.xyz = NeutralTonemap(r0.xyz);
   if (cb0[138].w > 0) {
     r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
     r2.xyz = handleUserLUT(r0.xyz, t4, s0_s, cb0[138].xyz);
@@ -78,6 +78,9 @@ void main(
   r0.xyz = r0.xxx * r0.yzw + r2.xyz;
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t3, r0.xyz, cb0[137].z + 1u);
+  }
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if (injectedData.fxFilmGrainType == 0.f) {
   r1.xy = v1.xy * cb0[148].xy + cb0[148].zw;

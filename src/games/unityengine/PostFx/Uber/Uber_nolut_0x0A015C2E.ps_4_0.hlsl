@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t2 : register(t2);
 Texture2D<float4> t1 : register(t1);
@@ -36,8 +36,8 @@ void main(
   if(injectedData.toneMapType == 0.f){
     r0.yzw = saturate(r0.yzw);
   }
-  if (injectedData.tonemapCheck == 1.f && (injectedData.count2Old == injectedData.count2New)) {
-    r0.yzw = applyUserNoTonemap(r0.yzw);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.yzw = GradeAndDisplayMap(r0.yzw);
   }
   r0.xyz = applyDither(r0.yzw, r0.x * (1.0 / 510.0), 1);
   if (injectedData.countOld == injectedData.countNew) {

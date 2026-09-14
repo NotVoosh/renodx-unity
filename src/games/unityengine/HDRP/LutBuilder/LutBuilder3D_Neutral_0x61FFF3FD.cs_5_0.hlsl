@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t7 : register(t7);
 Texture2D<float4> t6 : register(t6);
@@ -197,7 +197,7 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
     r2.y = dot(float3(-0.130260006,1.1408,-0.0105499998), r0.xyz);
     r2.z = dot(float3(-0.0240000002,-0.128969997,1.15296996), r0.xyz);
   }
-  r0.xyz = applyUserTonemapNeutral(r2.xyz);
+  r0.xyz = NeutralTonemap(r2.xyz);
   r0.w = 1;
   u0[vThreadID] = r0;
   return;

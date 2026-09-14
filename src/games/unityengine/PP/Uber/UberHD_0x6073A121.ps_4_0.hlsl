@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -219,6 +219,9 @@ void main(
   r3.xyz = r2.xyw + -r1.xyz;
   r1.xyz = r1.www * r3.xyz + r1.xyz;
   r1.xyz = r2.zzz ? r2.xyw : r1.xyz;
+  if (injectedData.count2Old == injectedData.count2New) {
+    r1.xyz = GradeAndDisplayMap(r1.xyz);
+  }
   r0.xyz = renodx::color::srgb::EncodeSafe(r1.xyz);
   r1.xyzw = float4(0.0973,0.103,0.1099,0.1031) * v0.xyyx;
   r1.xyzw = frac(r1.xyzw);

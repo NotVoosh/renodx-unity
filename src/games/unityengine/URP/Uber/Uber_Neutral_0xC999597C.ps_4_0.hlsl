@@ -1,4 +1,4 @@
-#include "../../tonemap.hlsl"
+#include "../../common.hlsli"
 
 Texture2D<float4> t4 : register(t4);
 Texture2D<float4> t3 : register(t3);
@@ -78,7 +78,7 @@ void main(
     r0.xyz = r1.xyz * r0.xyz;
   }
   r0.xyz = cb0[117].www * r0.xyz;
-  r0.xyz = applyUserTonemapNeutral(r0.xyz);
+  r0.xyz = NeutralTonemap(r0.xyz);
   if (cb0[118].w > 0) {
     r1.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
     r2.xyz = handleUserLUT(r0.xyz, t4, s0_s, cb0[118].xyz);
@@ -104,11 +104,8 @@ void main(
   } else {
     r0.xyz = renodx::lut::SampleTetrahedral(t3, r0.xyz, cb0[117].z + 1u);
   }
-  float3 newPeak = renodx::lut::Sample(t3, s0_s, lutShaper((injectedData.toneMapPeakNits / injectedData.toneMapGameNits), false, 1), cb0[117].z + 1u) * injectedData.toneMapGameNits;
-  float newPeakY = renodx::color::y::from::BT709(newPeak);
-  float ratio = renodx::math::DivideSafe(injectedData.toneMapPeakNits / newPeakY, 1.f);
-  if(ratio < 0.985f){
-    r0.xyz = rolloff(r0.xyz, ratio);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
   }
   if(injectedData.fxFilmGrainType == 0.f){
   r1.xy = v1.xy * cb0[129].xy + cb0[129].zw;
@@ -119,7 +116,7 @@ void main(
   r1.x = sqrt(r1.x);
   r1.x = cb0[128].y * -r1.x + 1;
   r1.yzw = r0.xyz * r0.www;
-  r1.yzw = cb0[128].xxx * r1.yzw;
+  r1.yzw = cb0[128].xxx * r1.yzw * injectedData.fxFilmGrain;
   r0.xyz = r1.yzw * r1.xxx + r0.xyz;
   } else {
     r0.xyz = applyFilmGrain(r0.xyz, v1);

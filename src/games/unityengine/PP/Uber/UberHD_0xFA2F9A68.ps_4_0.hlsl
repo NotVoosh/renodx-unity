@@ -1,4 +1,4 @@
-#include "../../common.hlsl"
+#include "../../common.hlsli"
 
 Texture3D<float4> t5 : register(t5);
 Texture2D<float4> t4 : register(t4);
@@ -62,9 +62,11 @@ void main(
   r0.xyz = r0.xyz * cb0[36].xxx + r0.www;
   r0.xyzw = t5.Sample(s5_s, r0.xyz).xyzw;
   } else {
-    r0.rgb = renodx::lut::SampleTetrahedral(t5, r0.rgb, 1 / cb0[36].x);
+    r0.xyz = renodx::lut::SampleTetrahedral(t5, r0.xyz, 1 / cb0[36].x);
   }
-  r0.xyz = renodx::color::srgb::EncodeSafe(r0.xyz);
+  if (injectedData.count2Old == injectedData.count2New) {
+    r0.xyz = GradeAndDisplayMap(r0.xyz);
+  }
   r1.xy = v1.xy * cb0[30].xy + cb0[30].zw;
   r1.xyzw = t0.Sample(s0_s, r1.xy).xyzw;
   r0.w = r1.w * 2 + -1;
@@ -74,8 +76,7 @@ void main(
   r1.x = sqrt(r1.x);
   r1.x = 1 + -r1.x;
   r0.w = r1.x * r0.w;
-  r0.xyz = r0.www * (1.0 / 255.0) + r0.xyz;
-  r0.xyz = renodx::color::srgb::DecodeSafe(r0.xyz);
+  r0.xyz = applyDither(r0.xyz, r0.w * (1.0 / 255.0));
   if (injectedData.countOld == injectedData.countNew) {
     r0.xyz = PostToneMapScale(r0.xyz);
   }

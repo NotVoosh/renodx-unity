@@ -1,4 +1,4 @@
-#include "../tonemap.hlsl"
+#include "../common.hlsli"
 
 Texture2DMS<float4> t0 : register(t0);
 cbuffer cb0 : register(b0){
@@ -23,7 +23,7 @@ void main(
     if (r2.x != 0) break;
     r2.xyz = t0.Load(r0.xy, r1.w).xyz;
     r2.xyz = cb0[137].xxx * r2.xyz;
-    r1.xyz = applyUserTonemapNeutral(r2.xyz) + r1.xyz;
+    r1.xyz = NeutralTonemap(r2.xyz) + r1.xyz;
     r1.w = (int)r1.w + 1;
   }
   r0.x = asint(cb0[134].x);

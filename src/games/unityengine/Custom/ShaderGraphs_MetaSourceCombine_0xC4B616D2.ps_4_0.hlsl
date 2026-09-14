@@ -1,4 +1,4 @@
-#include "../common.hlsl"
+#include "../common.hlsli"
 
 Texture2D<float4> t1 : register(t1);
 Texture2D<float4> t0 : register(t0);
@@ -112,10 +112,6 @@ void main(
   r0.xyz = round(r0.xyz);
   r0.xyz = r0.xyz * r2.xyz + r3.xyz;
   r0.xyz = r0.xyz / r1.www;
-  /*r0.xyz = log2(r0.xyz);
-  r0.w = 1 / cb1[2].z;
-  r0.xyz = r0.www * r0.xyz;
-  r0.xyz = exp2(r0.xyz);*/
   r0.xyz = sign(r0.xyz) * pow(abs(r0.xyz), 1 / cb1[2].z);
   r0.xyz = cb0[128].zzz ? r1.xyz : r0.xyz;
   if (injectedData.countOld == injectedData.countNew) {
