@@ -3488,6 +3488,13 @@ const std::unordered_map<
             },
         },
         {
+            "Gamble With Your Friends.exe",
+            {
+                {"Force_Pipeline_Cloning", 1.f},
+                {"Use_Swapchain_Proxy", 1.f},
+            },
+        },
+        {
             "Going Under.exe",
             {
                 {"Upgrade_R8G8B8A8_TYPELESS", UPGRADE_TYPE_NONE},
