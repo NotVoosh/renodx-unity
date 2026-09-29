@@ -8,7 +8,7 @@ cbuffer cb1 : register(b1){
   float4 cb1[2];
 }
 cbuffer cb0 : register(b0){
-  float4 cb0[2];
+  float4 cb0[22];
 }
 
 #define cmp -
@@ -160,6 +160,7 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   float4 r0,r1,r2,r3,r4,r5,r6,r7;
   uint4 bitmask, uiDest;
   float4 fDest;
+
   r0.xyz = (uint3)vThreadID.xyz;
   r0.xy = float2(0.5,0.5) + r0.xy;
   r0.xy = r0.xy * cb2[0].zw + float2(-0.015625,-0.015625);
@@ -168,7 +169,7 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r0.xyz = float3(-0.434017599,-0.434017599,-0.434017599) + r1.xyz;
   r0.xyz = r0.xyz * float3(14,14,14) + float3(-2.47393107,-2.47393107,-2.47393107);
   r0.xyz = exp2(r0.xyz);
-  r0.xyz = float3(-0.00266771903, -0.00266771903, -0.00266771903) + r0.xyz;
+  r0.xyz = float3(-0.00266771903,-0.00266771903,-0.00266771903) + r0.xyz;
   } else {
     r0.xyz = lutShaper(r1.xyz, true);
   }
@@ -196,6 +197,91 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r1.w = 1 + -r1.w;
   r0.w = r1.w * r0.w;
   r0.xyz = r0.www * r0.xyz + r1.xyz;
+  r0.w = dot(r0.xyz, float3(0.272228718,0.674081743,0.0536895171));
+  r0.xyz = r0.xyz + -r0.www;
+  r1.xyzw = cb0[12].xyzw * cb0[2].xyzw;
+  r1.xyz = r1.xyz * r1.www;
+  r1.xyz = r1.xyz * r0.xyz + r0.www;
+  r1.xyz = max(float3(0,0,0), r1.xyz);
+  r1.xyz = float3(5.55555534,5.55555534,5.55555534) * r1.xyz;
+  r1.xyz = log2(r1.xyz);
+  r2.xyzw = cb0[13].xyzw * cb0[3].xyzw;
+  r2.xyz = r2.xyz * r2.www;
+  r1.xyz = r2.xyz * r1.xyz;
+  r1.xyz = exp2(r1.xyz);
+  r1.xyz = float3(0.180000007,0.180000007,0.180000007) * r1.xyz;
+  r1.xyz = log2(r1.xyz);
+  r2.xyzw = cb0[14].xyzw * cb0[4].xyzw;
+  r2.xyz = r2.xyz * r2.www;
+  r2.xyz = float3(1,1,1) / r2.xyz;
+  r1.xyz = r2.xyz * r1.xyz;
+  r1.xyz = exp2(r1.xyz);
+  r2.xyzw = cb0[15].xyzw * cb0[5].xyzw;
+  r2.xyz = r2.xyz * r2.www;
+  r3.xyzw = cb0[16].xyzw + cb0[6].xyzw;
+  r3.xyz = r3.xyz + r3.www;
+  r1.xyz = r1.xyz * r2.xyz + r3.xyz;
+  r1.w = 1 / cb0[0].z;
+  r1.w = saturate(r1.w * r0.w);
+  r2.x = r1.w * -2 + 3;
+  r1.w = r1.w * r1.w;
+  r1.w = -r2.x * r1.w + 1;
+  r2.x = 1 + -r1.w;
+  r2.y = -cb0[0].w + r0.w;
+  r2.z = cb0[1].x + -cb0[0].w;
+  r2.z = 1 / r2.z;
+  r2.y = saturate(r2.y * r2.z);
+  r2.z = r2.y * -2 + 3;
+  r2.y = r2.y * r2.y;
+  r2.x = -r2.z * r2.y + r2.x;
+  r2.y = r2.z * r2.y;
+  r1.xyz = r2.xxx * r1.xyz;
+  r3.xyzw = cb0[7].xyzw * cb0[2].xyzw;
+  r2.xzw = r3.xyz * r3.www;
+  r2.xzw = r2.xzw * r0.xyz + r0.www;
+  r2.xzw = max(float3(0,0,0), r2.xzw);
+  r2.xzw = float3(5.55555534,5.55555534,5.55555534) * r2.xzw;
+  r2.xzw = log2(r2.xzw);
+  r3.xyzw = cb0[8].xyzw * cb0[3].xyzw;
+  r3.xyz = r3.xyz * r3.www;
+  r2.xzw = r3.xyz * r2.xzw;
+  r2.xzw = exp2(r2.xzw);
+  r2.xzw = float3(0.180000007,0.180000007,0.180000007) * r2.xzw;
+  r2.xzw = log2(r2.xzw);
+  r3.xyzw = cb0[9].xyzw * cb0[4].xyzw;
+  r3.xyz = r3.xyz * r3.www;
+  r3.xyz = float3(1,1,1) / r3.xyz;
+  r2.xzw = r3.xyz * r2.xzw;
+  r2.xzw = exp2(r2.xzw);
+  r3.xyzw = cb0[10].xyzw * cb0[5].xyzw;
+  r3.xyz = r3.xyz * r3.www;
+  r4.xyzw = cb0[11].xyzw + cb0[6].xyzw;
+  r4.xyz = r4.xyz + r4.www;
+  r2.xzw = r2.xzw * r3.xyz + r4.xyz;
+  r1.xyz = r2.xzw * r1.www + r1.xyz;
+  r3.xyzw = cb0[17].xyzw * cb0[2].xyzw;
+  r2.xzw = r3.xyz * r3.www;
+  r0.xyz = r2.xzw * r0.xyz + r0.www;
+  r0.xyz = max(float3(0,0,0), r0.xyz);
+  r0.xyz = float3(5.55555534,5.55555534,5.55555534) * r0.xyz;
+  r0.xyz = log2(r0.xyz);
+  r3.xyzw = cb0[18].xyzw * cb0[3].xyzw;
+  r2.xzw = r3.xyz * r3.www;
+  r0.xyz = r2.xzw * r0.xyz;
+  r0.xyz = exp2(r0.xyz);
+  r0.xyz = float3(0.180000007,0.180000007,0.180000007) * r0.xyz;
+  r0.xyz = log2(r0.xyz);
+  r3.xyzw = cb0[19].xyzw * cb0[4].xyzw;
+  r2.xzw = r3.xyz * r3.www;
+  r2.xzw = float3(1,1,1) / r2.xzw;
+  r0.xyz = r2.xzw * r0.xyz;
+  r0.xyz = exp2(r0.xyz);
+  r3.xyzw = cb0[20].xyzw * cb0[5].xyzw;
+  r2.xzw = r3.xyz * r3.www;
+  r3.xyzw = cb0[21].xyzw + cb0[6].xyzw;
+  r3.xyz = r3.xyz + r3.www;
+  r0.xyz = r0.xyz * r2.xzw + r3.xyz;
+  r0.xyz = r0.xyz * r2.yyy + r1.xyz;
   r0.xyz = lerp(preGradingAp1, r0.xyz, CUSTOM_INTERNAL_LUT_STRENGTH);
   // Blue correct ?
   r1.x = dot(float3(0.938639402,5.86919541e-011,0.0613606237), r0.xyz);
@@ -204,11 +290,14 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r1.xyz = r1.xyz + -r0.xyz;
   r0.xyz = cb0[1].yyy * r1.xyz + r0.xyz;
   float3 preRRTAp1 = r0.xyz;
+  // AP1 to AP0
   r1.y = dot(float3(0.695452213,0.140678704,0.163869068), r0.xyz);
   r1.z = dot(float3(0.0447945632,0.859671116,0.0955343172), r0.xyz);
   r1.w = dot(float3(-0.00552588282,0.00402521016,1.00150073), r0.xyz);
+  // RRT start
   r1.xyz = RRT(r1.yzw);
   float3 RRTresult = r1.xyz;
+  // RRT end
   float3 sdrTonemappedAp1 = unrealengine::filmtonemap::ApplyToneCurve(r1.xyz, cb1[0].x, cb1[0].y, cb1[0].z, cb1[0].w, cb1[1].x);
   r1.xyz = sdrTonemappedAp1;
   r0.w = dot(r1.xyz, float3(0.272228718,0.674081743,0.0536895171));
@@ -224,7 +313,7 @@ void main(uint3 vThreadID: SV_DispatchThreadID) {
   r0.xyz = cb0[1].yyy * r1.xyz + r0.xyz;
   r1.x = dot(float3(1.70505095,-0.621792018,-0.0832588673), r0.xyz);
   r1.y = dot(float3(-0.130256414,1.14080465,-0.0105483187), r0.xyz);
-  r1.z = dot(float3(-0.024003353,-0.128968969,1.15297234), r0.xyz);
+  r1.z = dot(float3(-0.024003353, -0.128968969, 1.15297234), r0.xyz);
   float3 sdrTonemappedBt709 = r1.xyz;
   if (RENODX_TONE_MAP_TYPE == 0.f) {
     r1.xyz = max(0.f, sdrTonemappedBt709);
