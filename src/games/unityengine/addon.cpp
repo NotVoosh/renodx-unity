@@ -3536,6 +3536,12 @@ const std::unordered_map<
             },
         },
         {
+            "I Know a Guy.exe",
+            {
+                {"Upgrade_R11G11B10_FLOAT", UPGRADE_TYPE_OUTPUT_SIZE},
+            },
+        },
+        {
             "KingdomsAndCastles.exe",
             {
                 {"Swapchain_Encoding", 1.f},
