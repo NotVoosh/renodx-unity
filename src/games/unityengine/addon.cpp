@@ -2653,7 +2653,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Tone Mapper",
         .section = "Tone Mapping",
         .tooltip = "Sets the tone mapper type",
-        .labels = {"Vanilla", "None", "Neutwo"},
+        .labels = {"Vanilla", "None", "Vanilla+ (extended curve + Neutwo)"},
         .tint = 0x38F6FC,
         .is_visible = []() { return settings[0]->GetValue() >= 1; },
     },
@@ -4420,6 +4420,11 @@ void OnPresent(
         unityTonemapper = InternalLutCheck == 4.f || sneakyBuilder ? unityTonemapper : 0;
         shader_injection.isTonemapped = isTonemapped || isTonemappedCheck == 1.f ? 1.f : 0.f;
         isTonemapped = InternalLutCheck == 4.f || sneakyBuilder ? shader_injection.isTonemapped == 1.f : false;
+        if(isTonemapped){
+            settings[1]->labels = {"Vanilla", "None", "Vanilla+ (extended curve + Neutwo)"};
+        } else {
+            settings[1]->labels = {"Vanilla", "None", "Vanilla+ (extended curve + Neutwo)", "PsychoV (30)"};
+        }
         lutSampler = 0;
         lutBuilder = 0;
         if(shader_injection.gammaSpace != gammaSpace){
